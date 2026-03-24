@@ -23,3 +23,12 @@ AWS_DEFAULT_ACL = None         # Use bucket policies, don't make public by defau
 
 # Make sure we handle media URL correctly
 MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/media/'
+
+# Cludinary configuration, used for image processing
+# ie. resizing, compressing, & converting an image to 'webp' format.
+cloudinary.config(
+    cloud_name = env('CLOUDINARY_CLOUD_NAME'),
+    api_key = env('CLOUDINARY_API_KEY'),
+    api_secret = env('CLOUDINARY_API_SECRET'),
+    secure = True # Ensures HTTPS URLs
+)

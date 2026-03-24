@@ -4,7 +4,7 @@ services:
       context: ..              # Go up one level to the project root
       dockerfile: docker/Dockerfile
     volumes:
-      - .:/app
+      - ..:/app
     ports:
       - "8000:8000"
     env_file:
@@ -12,4 +12,48 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.dev
     command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      redis:
+        condition: service_healthy  # Wait for Redis to be Healthy before starting the web service
+      db:
+        condition: service_started
+    networks:
+      - app-network
 
+  redis:
+    image: redis:latest
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    # The Healthcheck configuration for testing if this service is up and running
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - app-network
+
+  db:
+    image: postgres:17
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

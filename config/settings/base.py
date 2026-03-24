@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
     # 3rd party apps
     'storages',
+    'rest_framework',
 
     # default django apps
     'django.contrib.admin',
@@ -133,31 +134,37 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Cludinary configuration, used for image processing
-# ie. resizing, compressing, & converting an image to 'webp' format.
-
-cloudinary.config(
-    cloud_name = env('CLOUDINARY_CLOUD_NAME'),
-    api_key = env('CLOUDINARY_API_KEY'),
-    api_secret = env('CLOUDINARY_API_SECRET'),
-    secure = True # Ensures HTTPS URLs
-)
-
-
 # Determines the total max size of a request body before a SuspiciousOperation
 # error is raised
+
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760 # 10 MB
 
 
 # This defines the maximum size of a single file that will be stored in memory.
 # Anything larger is streamed to a temporary file (/tmp).
+
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880 # 5 MB
 
 
 # Reduce the total number of files in a single request, to prevent or reduce the 
 # impact of DoS attacks
+
 DATA_UPLOAD_MAX_FILES = 20 
 
+
+# Celery config
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+# DRF Config
+
+REST_FRAMEWORK = {
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1",],
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
