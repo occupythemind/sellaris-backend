@@ -17,13 +17,14 @@ class Product(models.Model):
     brand = models.CharField(max_length=70, help_text="e.g., Apple Inc")
     slug = models.SlugField(unique=True, max_length=70, blank=True) # Slug for clean user-friendly URLs 
     description = models.TextField(max_length=400, blank=True)
+    # So, even if the Category is deleted, the Product remains
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
     base_price = get_price_decimal_field() # Explicitly set max_digits and decimal_places
 
     def __str__(self):
         return f"{self.brand} {self.name}"
 
-# Helps tell a product apart from another
+# Helps tell the different types (variants) of that product
 class ProductVariant(models.Model):
     id = models.UUIDField(default=uuid4, editable=False, unique=True, primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
@@ -56,3 +57,6 @@ class ProductImage(models.Model):
         ]
     )
     is_main = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.product_variant}: {self.image.path}"

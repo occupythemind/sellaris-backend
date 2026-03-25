@@ -1,4 +1,6 @@
+from django.db import transaction
 from rest_framework import serializers
+from tasks.process_image import process_product_image_cloudinary, process_product_image_locally
 from apps.products.models import (
     Category,
     Product,
@@ -114,12 +116,6 @@ class ProductVariantWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
-    def validate_sku_code(self, value):
-        value = value.strip().upper()
-        if not value:
-            raise serializers.ValidationError("SKU cannot be empty.")
-        return value
-
     def validate_stock_quantity(self, value):
         if value < 0:
             raise serializers.ValidationError("Stock quantity cannot be negative.")
@@ -208,6 +204,22 @@ class ProductImageWriteSerializer(serializers.ModelSerializer):
             return attrs
         
         return attrs
+    
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+
+        # Trigger task ONLY after DB commit
+        def run_task():
+            from django.conf import settings
+
+            if settings.DEBUG:
+                process_product_image_locally.delay(instance.id)
+            else:
+                process_product_image_cloudinary.delay(instance.id)
+
+        transaction.on_commit(run_task)
+
+        return instance
 
 
 class ProductImageReadSerializer(serializers.ModelSerializer):
@@ -217,7 +229,7 @@ class ProductImageReadSerializer(serializers.ModelSerializer):
 
 
 # =========================
-# Optional: Composite Read Serializer (Highly Useful)
+# Composite Read Serializer (Highly Useful)
 # =========================
 
 class ProductVariantDetailSerializer(serializers.ModelSerializer):

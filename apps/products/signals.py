@@ -1,9 +1,7 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.text import slugify
-from tasks.process_image import process_product_image_locally, process_product_image_cloudinary
-from .models import Product, ProductImage, ProductVariant
-import os
+from .models import Product, ProductVariant
 
 @receiver(pre_save, sender=Product)
 def set_product_slug(sender, instance, **kwargs):
@@ -19,17 +17,6 @@ def set_product_slug(sender, instance, **kwargs):
         slug = f"{base_slug}-{counter}"
 
     instance.slug = slug
-
-@receiver(post_save, sender=ProductImage)
-def trigger_image_processing(sender, instance, created, **kwargs):
-    if created:
-        if os.environ.get("DJANGO_SETTINGS_MODULE", '') == 'config.settings.prod':
-            '''Ensures to use Cloudinary for image processing on production'''
-            # It is good to Pass only the ID to celery, and not the whole object
-            process_product_image_cloudinary.delay(instance.id)
-        else:
-            '''Ensures to process image locally.'''
-            process_product_image_locally.delay(instance.id)
 
 @receiver(pre_save, sender=ProductVariant)
 def set_sku_code(sender, instance, **kwargs):

@@ -48,6 +48,24 @@ services:
     networks:
       - app-network
 
+  celery:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config worker -l info
+    volumes:
+      - ..:/app
+    env_file:
+    - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
+    depends_on:
+      - redis
+      - web
+    restart: unless-stopped
+    networks:
+      - app-network
+
 volumes:
   redis-data:
     driver: local

@@ -3,6 +3,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    volumes:
+      - media-data:/app/media
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
     command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
@@ -22,6 +24,21 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+
+  celery:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config worker -l info
+    volumes:
+      - media-data:/app/media
+    env_file:
+    - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+    depends_on:
+      - redis
+      - web
 
   nginx:
     image: nginx:alpine
