@@ -4,7 +4,7 @@ from django.apps import apps
 from core.utils import get_price_decimal_field
 from decimal import Decimal
 from uuid import uuid4
-
+from apps.products.models import ProductVariant
 
 class Cart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -32,7 +32,7 @@ class Cart(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(user__isnull=False) | models.Q(session_id__isnull=False)
                 ),
                 name="cart_user_or_session_required"
@@ -45,6 +45,19 @@ class Cart(models.Model):
                 name="unique_active_cart_per_user"
             ),
         ]
+
+    @property
+    def full_total_price(self) -> Decimal:
+        result = self.items.aggregate(
+            total=models.Sum(
+                models.ExpressionWrapper(
+                    models.F("quantity") * models.F("price"),
+                    output_field=models.DecimalField()
+                )
+            )
+        )["total"]
+
+        return result or Decimal("0.00")
 
     def __str__(self):
         return f"Cart {self.id}"
@@ -59,7 +72,7 @@ class CartItem(models.Model):
     )
 
     product_variant = models.ForeignKey(
-        apps.get_model("products", "ProductVariant"),
+        ProductVariant,
         on_delete=models.CASCADE,
         related_name="cart_items"
     )

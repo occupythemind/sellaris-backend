@@ -12,7 +12,7 @@ class Category(models.Model):
         return self.name
 
 class Product(models.Model):
-    id = models.UUIDField(default=uuid4, editable=False, unique=True, primary_key=True)
+    id = models.UUIDField(default=uuid4, editable=False, primary_key=True)
     name = models.CharField(max_length=70, help_text="e.g., Samsung, IPhone")
     brand = models.CharField(max_length=70, help_text="e.g., Apple Inc")
     slug = models.SlugField(unique=True, max_length=70, blank=True) # Slug for clean user-friendly URLs 
@@ -26,7 +26,7 @@ class Product(models.Model):
 
 # Helps tell the different types (variants) of that product
 class ProductVariant(models.Model):
-    id = models.UUIDField(default=uuid4, editable=False, unique=True, primary_key=True)
+    id = models.UUIDField(default=uuid4, editable=False, primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     sku_code = models.CharField(max_length=40, unique=True, help_text="Unique identifier/code for the product (SKU)", blank=True)
     color = models.CharField(max_length=50, help_text="The exact color e.g. Red, #ff00ff")
@@ -38,7 +38,7 @@ class ProductVariant(models.Model):
         return f"{self.product.name} - {self.color} {self.storage_size}"
 
 class Specification(models.Model):
-    id = models.UUIDField(default=uuid4, editable=False, unique=True, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='specifications')
     name = models.CharField(max_length=100, verbose_name="Specification Name", help_text="E.g., processor")
     value = models.CharField(max_length=255, verbose_name="Value", help_text="e.g., Inteli7")
@@ -47,7 +47,7 @@ class Specification(models.Model):
         return f"{self.name}: {self.value}"
 
 class ProductImage(models.Model):
-    id = models.UUIDField(default=uuid4, primary_key=True, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(
         upload_to='images/', 

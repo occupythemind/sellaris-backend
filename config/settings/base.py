@@ -70,6 +70,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+SESSION_SAVE_EVERY_REQUEST = True       # refresh expiry on activity
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
