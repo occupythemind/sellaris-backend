@@ -6,6 +6,8 @@ from decimal import Decimal
 from uuid import uuid4
 from apps.products.models import ProductVariant
 
+# Unlinke the wishlist, the cart is what the user is about to 'purchase'.
+
 class Cart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
 

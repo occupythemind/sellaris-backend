@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.products',
     'apps.users',
+    'apps.wishlists',
 
     # 3rd party apps
     'storages',
