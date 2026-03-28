@@ -15,7 +15,7 @@ def process_flutterwave_webhook(self, payload, log):
         event = data.get("event")
 
         if event != "charge.completed":
-            return Response(status=200)
+            return
         
         # Fetch payment data
         payment_data = data["data"]
@@ -31,11 +31,11 @@ def process_flutterwave_webhook(self, payload, log):
             log.status = "failed"
             log.detail = "payment object not found"
             log.save(update_fields=["status", "detail"])
-            return Response(status=200)
+            return
         
         # Idempotency check
         if payment.status == PaymentStatus.SUCCESS:
-            return Response(status=200)
+            return
         
         # Verify with Flutterwave API
         verify_url = f"{settings.FLW_BASE_URL}/transactions/{flw_tx_id}/verify"
@@ -61,13 +61,18 @@ def process_flutterwave_webhook(self, payload, log):
             log.status = "failed"
             log.detail = "non matching records"
             log.save(update_fields=["status", "detail"])
-            return Response(status=200)
+            return
         
-        # Mark payment successful if it passed these checks
+        # SUCCESS
         payment.status = PaymentStatus.SUCCESS
         payment.transaction_id = str(flw_tx_id)
         payment.confirmed_at = timezone.now()
         payment.save()
+
+        # Update the Log after processing
+        log.status = "success"
+        log.processed = True
+        log.save(update_fields=["status", "processed"])
 
         order = payment.order
         order.status = "PAID"
@@ -78,7 +83,7 @@ def process_flutterwave_webhook(self, payload, log):
     
 
 @shared_task(bind=True, max_retries=3)
-def process_paystack_webhook(self, payload):
+def process_paystack_webhook(self, payload, log):
     try:
         event = payload.get("event")
 
@@ -94,6 +99,9 @@ def process_paystack_webhook(self, payload):
         ).first()
 
         if not payment:
+            log.status = "failed"
+            log.detail = "payment object not found"
+            log.save(update_fields=["status", "detail"])
             return
 
         # IDEMPOTENCY
@@ -123,6 +131,9 @@ def process_paystack_webhook(self, payload):
         ):
             payment.status = PaymentStatus.FAILED
             payment.save(update_fields=["status"])
+            log.status = "failed"
+            log.detail = "non matching records"
+            log.save(update_fields=["status", "detail"])
             return
 
         # SUCCESS
@@ -130,6 +141,11 @@ def process_paystack_webhook(self, payload):
         payment.transaction_id = str(verified["id"])
         payment.confirmed_at = timezone.now()
         payment.save()
+
+        # Update the Log after processing
+        log.status = "success"
+        log.processed = True
+        log.save(update_fields=["status", "processed"])
 
         order = payment.order
         order.status = "PAID"

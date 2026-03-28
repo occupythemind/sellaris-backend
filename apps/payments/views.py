@@ -37,10 +37,10 @@ class FlutterwaveWebhookAPIView(APIView):
         # SEND TO CELERY
         process_flutterwave_webhook.delay(payload, log)
 
-        # Update the Log after processing
-        log.status = "success"
-        log.processed = True
-        log.save(update_fields=["status", "processed"])
+        log.status = "queued"
+        log.save(update_fields=["status"])
+
+        return Response(status=200)
 
 
 class PaystackWebhookAPIView(APIView):
@@ -71,7 +71,7 @@ class PaystackWebhookAPIView(APIView):
         )
 
         # QUEUE TASK
-        process_paystack_webhook.delay(data)
+        process_paystack_webhook.delay(data, log)
 
         log.status = "queued"
         log.save(update_fields=["status"])
