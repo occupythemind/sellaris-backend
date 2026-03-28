@@ -26,11 +26,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 if (BASE_DIR / '.env').exists():
     environ.Env.read_env(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# The Application Secret Key
 SECRET_KEY = env('SECRET_KEY')
+
+# Flutterwave Payment Integration Credentials
+FLW_SECRET_KEY = env("FLW_SECRET_KEY")
+FLW_SECRET_HASH=env("FLW_SECRET_HASH")
+FLW_BASE_URL = env("FLW_BASE_URL")
+
+# PAYSTACK Payment Integration Credentials
+PAYSTACK_SECRET_KEY=env("PAYSTACK_SECRET_KEY")
+
+# Use this to form redirect URLs & webhooks URLs
+FRONTEND_BASE_URL=env("FRONTEND_BASE_URL")
+BACKEND_BASE_URL=env("BACKEND_BASE_URL")
+PAYMENT_REDIRECT_URL = f"{env('FRONTEND_BASE_URL')}{env('PAYMENT_REDIRECT_PATH')}"
 
 ALLOWED_HOSTS = []
 
@@ -167,7 +178,12 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1",],
+    "DEFAULT_THROTTLE_RATES": {
+        "flutterwave_webhook": "60/min",
+        "paystack_webhook":"60/min",
+    }
 }
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
