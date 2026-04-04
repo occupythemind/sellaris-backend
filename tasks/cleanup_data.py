@@ -5,6 +5,7 @@ from datetime import timedelta
 from apps.cart.models import Cart
 from apps.wishlists.models import Wishlist
 from apps.orders.models import Order
+from apps.users.models import User
 
 from core.utils import batch_delete
 
@@ -34,3 +35,16 @@ def cleanup_expired_guest_data(self):
         created_at__lt=now - timedelta(hours=48)
     )
     batch_delete(order_qs, batch_size=200)
+
+
+@shared_task
+def delete_user_account(user_id):
+    try:
+        user = User.objects.get(id=user_id)
+
+        # Only delete if still inactive
+        if not user.is_active:
+            user.delete()
+
+    except User.DoesNotExist:
+        pass

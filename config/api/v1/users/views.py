@@ -1,10 +1,19 @@
-from django.contrib.auth import get_user_model, authenticate, login
+from django.contrib.auth import (
+    get_user_model, 
+    authenticate, 
+    login, 
+    logout
+)
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.utils import timezone
 from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
+from datetime import timedelta
 import logging
 
 from apps.users.services.transfer_ownership import transfer_guest_data_to_user
@@ -13,8 +22,9 @@ from apps.users.oauth.providers.google import GoogleOAuthService
 from apps.users.oauth.providers.facebook import FacebookOAuthService
 from apps.users.oauth.providers.apple import AppleOAuthService
 from apps.users.oauth.oauth_service import OAuthService
+from tasks.cleanup_data import delete_user_account
 from tasks.send_email import send_verification_email_task
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserUpdateSerializer
 from apps.users.throttles import (
     RegisterThrottle,
     LoginThrottle,
@@ -76,6 +86,15 @@ class LoginAPIView(APIView):
                 {"detail": f"Email not verified, use: {settings.EMAIL_VERIFY_URL}"},
                 status=status.HTTP_403_FORBIDDEN
             )
+        
+        if not user.is_active:
+            if user.deletion_scheduled_at:
+                # Reactivate
+                user.is_active = True
+                user.deletion_scheduled_at = None
+                user.save()
+            else:
+                raise AuthenticationFailed("Account disabled")
 
         login(request, user)
 
@@ -122,7 +141,60 @@ class ResendVerificationAPIView(APIView):
             send_verification_email_task.delay(user.id)
 
         return Response({"message": "If account exists, email sent"})
-    
+
+
+class AccountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = UserUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({"detail": "Account updated successfully"})
+
+
+class DeleteAccountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        password = request.data.get("password")
+
+        if not password or not user.check_password(password):
+            return Response(
+                {"detail": "Invalid password"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if account is already deactivated
+        if user.deletion_scheduled_at:
+            return Response(
+                {"detail": "Deletion already scheduled"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Soft delete
+        user.is_active = False
+        user.save()
+
+        logout(request)
+
+        # Schedule deletion
+        delete_user_account.apply_async(
+            args=[user.id],
+            eta=timezone.now() + timedelta(days=30)
+        )
+
+        return Response(
+            {"detail": "Account deactivated. It will be permanently deleted in 30 days."},
+            status=status.HTTP_202_ACCEPTED
+        )
+
 
 class GoogleOAuthAPIView(APIView):
     throttle_classes = [OAuthThrottle]

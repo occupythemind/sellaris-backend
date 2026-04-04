@@ -10,6 +10,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     email = models.EmailField(unique=True)
     is_verified = models.BooleanField(default=False)
+    deletion_scheduled_at = models.DateTimeField(null=True, blank=True)
 
     # Make email login instead of username
     USERNAME_FIELD = "email"

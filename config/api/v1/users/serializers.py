@@ -22,3 +22,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
 
         return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "username", "password"]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance
+    
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exclude(id=self.instance.id).exists():
+            raise serializers.ValidationError("Username already taken")
+        return value
