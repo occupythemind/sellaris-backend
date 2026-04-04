@@ -1,5 +1,8 @@
 from django.conf import settings
 import requests
+import logging
+
+logger = logging.getLogger("payments")
 
 class FlutterwaveService:
 
@@ -22,7 +25,7 @@ class FlutterwaveService:
                 "email": customer_email
             },
             "customizations": {
-                "title": "Your Store"
+                "title": settings.EMAIL_FROM_NAME,
             }
         }
 

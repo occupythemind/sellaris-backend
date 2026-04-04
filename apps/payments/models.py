@@ -4,8 +4,15 @@ from apps.orders.models import Order
 from core.utils import get_price_decimal_field
 import secrets
 
-def generate_reference():
-    return f"flw_{secrets.token_hex(12)}"
+def generate_reference(provider: str):
+    if not provider:
+        raise ValueError("Provider must be set before generating reference_id")
+    prefix_map = {
+        "flutterwave": "flw",
+        "paystack": "pst",
+    }
+    prefix = prefix_map.get(provider.lower(), "gen")
+    return f"{prefix}_{secrets.token_hex(12)}"
 
 class PaymentStatus(models.TextChoices):
     INITIALIZED = "initialized", "Initialized"
@@ -40,7 +47,6 @@ class Payment(models.Model):
     reference_id = models.CharField(
         max_length=255, 
         unique=True,
-        default=generate_reference,
         editable=False
     ) 
 
@@ -56,6 +62,20 @@ class Payment(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(status="initialized"),
+                name="unique_initialized_payment_per_order"
+            )
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.reference_id:
+            self.reference_id = generate_reference(self.provider)
+        super().save(*args, **kwargs)
 
 
 class PaymentWebhookLog(models.Model):

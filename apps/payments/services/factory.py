@@ -3,7 +3,7 @@ from .paystack import PaystackService
 
 def get_payment_service(provider: str):
     if provider == "flutterwave":
-        return ("flutterwave", FlutterwaveService())
+        return FlutterwaveService()
     elif provider == "paystack":
-        return ("paystack", PaystackService())
+        return PaystackService()
     return None

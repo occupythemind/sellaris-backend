@@ -12,13 +12,15 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 
-# Optional: Configure for media files
+# Configure for media files
 DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
-# Optional: Configure for static files
+
+# Configure for static files
 STATICFILES_STORAGE = 'storages.backends.s3.S3Storage' 
 
 # Other S3 settings
 AWS_S3_FILE_OVERWRITE = False  # Keep files, don't delete/overwrite
+
 AWS_DEFAULT_ACL = None         # Use bucket policies, don't make public by default
 
 # Make sure we handle media URL correctly
@@ -32,3 +34,9 @@ cloudinary.config(
     api_secret = env('CLOUDINARY_API_SECRET'),
     secure = True # Ensures HTTPS URLs
 )
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# We stream to STROUT, then we handle logs from the hosting platform
+# Ensure only console is used
+LOGGING["loggers"]["payments"]["handlers"] = ["console"]

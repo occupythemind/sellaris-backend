@@ -40,6 +40,10 @@ class Wishlist(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+        ]
+
         constraints = [
             # Must belong to either a user or a session
             models.CheckConstraint(

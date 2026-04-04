@@ -57,7 +57,7 @@ class Order(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["user", "status"]),
+            models.Index(fields=["user", "status", "created_at"]),
             models.Index(fields=["session_id"]),
         ]
 

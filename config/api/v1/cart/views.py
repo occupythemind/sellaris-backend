@@ -61,21 +61,21 @@ class CartAPIView(ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        # Optional: disable direct cart creation
+        # Disable direct cart creation
         return Response(
             {"detail": "Not allowed."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
     def update(self, request, *args, **kwargs):
-        # Optional: disable direct cart creation
+        # Disable direct cart creation
         return Response(
             {"detail": "Not allowed."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
     def partial_update(self, request, *args, **kwargs):
-        # Optional: disable direct cart creation
+        # Disable direct cart creation
         return Response(
             {"detail": "Not allowed."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED
@@ -134,7 +134,7 @@ class CartItemAPIView(ModelViewSet):
     def update(self, request, *args, **kwargs):
         item = self.get_object()
 
-        quantity = request.data.get("quantity")
+        quantity = int(request.data.get("quantity"))
 
         if quantity is None or int(quantity) <= 0:
             return Response(

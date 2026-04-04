@@ -32,6 +32,10 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["user", "updated_at"]),
+        ]
+        
         constraints = [
             models.CheckConstraint(
                 condition=(
@@ -63,6 +67,7 @@ class Cart(models.Model):
 
     def __str__(self):
         return f"Cart {self.id}"
+    
     
 class CartItem(models.Model):
     id = models.BigAutoField(primary_key=True)

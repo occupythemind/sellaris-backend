@@ -52,7 +52,7 @@ class PaystackWebhookAPIView(APIView):
 
         # VERIFY SIGNATURE
         computed_hash = hmac.new(
-            settings.PAYSTACK_SECRET_KEY.encode(),
+            settings.PST_SECRET_KEY.encode(),
             payload,
             hashlib.sha512
         ).hexdigest()

@@ -1,13 +1,19 @@
 from rest_framework.response import Response
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
+from decimal import Decimal
 import requests
 import json
+import logging
+
+logger = logging.getLogger("payments")
 
 from apps.payments.models import Payment, PaymentStatus
 
 @shared_task(bind=True, max_retries=3)
+@transaction.atomic
 def process_flutterwave_webhook(self, payload, log):
     try:
         # Parse event
@@ -21,6 +27,8 @@ def process_flutterwave_webhook(self, payload, log):
         payment_data = data["data"]
         tx_ref = payment_data["tx_ref"]
         flw_tx_id = payment_data["id"]
+
+        logger.info(f"Processing payment webhook: {tx_ref}")
 
         # Fetch payment safely
         payment = Payment.objects.select_related("order").filter(
@@ -57,7 +65,8 @@ def process_flutterwave_webhook(self, payload, log):
             verified["tx_ref"] != payment.reference_id
         ):
             payment.status = PaymentStatus.FAILED
-            payment.save(update_fields=["status"])
+            payment.transaction_id = flw_tx_id
+            payment.save(update_fields=["status", "transaction_id"])
             log.status = "failed"
             log.detail = "non matching records"
             log.save(update_fields=["status", "detail"])
@@ -75,14 +84,18 @@ def process_flutterwave_webhook(self, payload, log):
         log.save(update_fields=["status", "processed"])
 
         order = payment.order
-        order.status = "PAID"
+        if order.status.upper() != "PENDING":
+            return
+        order.status = "PAID".lower()
         order.save(update_fields=["status"])
 
     except Exception as e:
+        logger.error("Payment verification failed", exc_info=True)
         raise self.retry(exc=e, countdown=10)
     
 
 @shared_task(bind=True, max_retries=3)
+@transaction.atomic
 def process_paystack_webhook(self, payload, log):
     try:
         event = payload.get("event")
@@ -93,6 +106,9 @@ def process_paystack_webhook(self, payload, log):
         data = payload["data"]
 
         reference = data["reference"]
+        pst_tx_id = data["id"]
+
+        logger.info(f"Processing payment webhook: {reference}")
 
         payment = Payment.objects.select_related("order").filter(
             reference_id=reference
@@ -112,7 +128,7 @@ def process_paystack_webhook(self, payload, log):
         url = f"https://api.paystack.co/transaction/verify/{reference}"
 
         headers = {
-            "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}"
+            "Authorization": f"Bearer {settings.PST_SECRET_KEY}"
         }
 
         response = requests.get(url, headers=headers)
@@ -125,12 +141,13 @@ def process_paystack_webhook(self, payload, log):
 
         # VALIDATION
         if (
-            verified["amount"] != int(payment.amount * 100) or
+            verified["amount"] != int(Decimal(payment.amount) * 100) or
             verified["currency"] != payment.currency or
             verified["reference"] != payment.reference_id
         ):
             payment.status = PaymentStatus.FAILED
-            payment.save(update_fields=["status"])
+            payment.transaction_id = pst_tx_id
+            payment.save(update_fields=["status", "transaction_id"])
             log.status = "failed"
             log.detail = "non matching records"
             log.save(update_fields=["status", "detail"])
@@ -148,8 +165,14 @@ def process_paystack_webhook(self, payload, log):
         log.save(update_fields=["status", "processed"])
 
         order = payment.order
-        order.status = "PAID"
+        if order.status.upper() != "PENDING":
+            return
+        order.status = "PAID".lower()
         order.save(update_fields=["status"])
 
     except Exception as e:
+        logger.error(
+            f"Paystack webhook failed for ref={reference}",
+            exc_info=True
+        )
         raise self.retry(exc=e, countdown=10)

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import environ
 import cloudinary
 from pathlib import Path
+from celery.schedules import crontab
 
 env = environ.Env()
 
@@ -36,15 +37,40 @@ FLW_SECRET_HASH=env("FLW_SECRET_HASH")
 FLW_BASE_URL = env("FLW_BASE_URL")
 
 # PAYSTACK Payment Integration Credentials
-PAYSTACK_SECRET_KEY=env("PAYSTACK_SECRET_KEY")
+PST_SECRET_KEY=env("PST_SECRET_KEY")
 
 # Use this to form redirect URLs & webhooks URLs
 FRONTEND_BASE_URL=env("FRONTEND_BASE_URL")
 BACKEND_BASE_URL=env("BACKEND_BASE_URL")
-PAYMENT_REDIRECT_URL = f"{env('FRONTEND_BASE_URL')}{env('PAYMENT_REDIRECT_PATH')}"
+PAYMENT_REDIRECT_URL = f"{FRONTEND_BASE_URL}{env('PAYMENT_REDIRECT_PATH')}"
+EMAIL_VERIFY_URL = f"{FRONTEND_BASE_URL}{env("VERIFY_EMAIL_PATH")}"
 
 ALLOWED_HOSTS = []
 
+# Email Config
+EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")
+
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+
+EMAIL_FROM_NAME = "MyShop"
+
+SENDPULSE_CLIENT_ID = env("SENDPULSE_CLIENT_ID")
+SENDPULSE_CLIENT_SECRET = env("SENDPULSE_CLIENT_SECRET")
+
+# OAuth Provders Credentials
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+FACEBOOK_APP_ID = env("FACEBOOK_APP_ID")
+FACEBOOK_APP_SECRET = env("FACEBOOK_APP_SECRET")
+APPLE_CLIENT_ID = env("APPLE_CLIENT_ID")
+
+# Token config
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 hours
 
 # Application definition
 
@@ -61,7 +87,7 @@ INSTALLED_APPS = [
 
     # 3rd party apps
     'storages',
-    'rest_framework',
+    'django_celery_beat',
 
     # default django apps
     'django.contrib.admin',
@@ -71,6 +97,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -172,6 +200,17 @@ CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
+
+# Celery beat schedule
+
+CELERY_BEAT_SCHEDULE = {
+    "cleanup-guest-data": {
+        "task": "tasks.cleanup_data.cleanup_expired_guest_data",
+        "schedule": crontab(hour=3, minute=0),  # daily 3AM
+    },
+}
+
+
 # DRF Config
 
 REST_FRAMEWORK = {
@@ -181,9 +220,43 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "flutterwave_webhook": "60/min",
         "paystack_webhook":"60/min",
+        "login": "5/min",
+        "register": "3/min",
+        "verify_email": "10/min",
+        "resend_verification": "2/min",
+        "oauth": "10/min",
     }
 }
 
+
+# Logging config
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "standard": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+
+    "loggers": {
+        "payments": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

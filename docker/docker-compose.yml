@@ -5,6 +5,7 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - ..:/app
+      - ./logs:/app/logs
     ports:
       - "8000:8000"
     env_file:
@@ -48,21 +49,39 @@ services:
     networks:
       - app-network
 
-  celery:
+  celery_default:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    command: celery -A config worker -l info
+    command: celery -A config worker -Q default -l info
     volumes:
       - ..:/app
     env_file:
-    - ../.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.dev
-    depends_on:
-      - redis
-      - web
-    restart: unless-stopped
+      - ../.env
+    networks:
+      - app-network
+
+  celery_emails:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config worker -Q emails -l info
+    volumes:
+      - ..:/app
+    env_file:
+      - ../.env
+    networks:
+      - app-network
+
+  celery_beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config beat -l info
+    volumes:
+      - ..:/app
+    env_file:
+      - ../.env
     networks:
       - app-network
 
@@ -71,7 +90,7 @@ volumes:
     driver: local
   postgres-data:
     driver: local
-
+  
 networks:
   app-network:
     driver: bridge

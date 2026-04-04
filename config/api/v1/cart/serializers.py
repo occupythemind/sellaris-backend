@@ -1,4 +1,5 @@
 from rest_framework.serializers import ModelSerializer
+from rest_framework.exceptions import ValidationError
 from apps.cart.models import Cart, CartItem
 
 
@@ -50,8 +51,16 @@ class CartItemWriteSerializer(ModelSerializer):
             },
         )
 
+
         if not created:
             item.quantity += quantity
+
+            # Validate stock quantity
+            if item.quantity > product_variant.stock_quantity:
+                raise ValidationError(
+                    "Stock Quantity exceeded, please wait while we re-stock. Thank you"
+                    )
+            
             item.save(update_fields=["quantity"])
 
         return item
