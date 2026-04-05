@@ -18,6 +18,8 @@ This project provides core commerce functionality including product management, 
 /api/v1/carts/
 /api/v1/wishlists/
 /api/v1/orders/
+/api/v1/payments/
+/api/v1/users/
 ```
 ⚠️ Note: This project is actively in development. More endpoints and features will be added.
 
@@ -43,11 +45,16 @@ Create a .env file in the root directory and configure:
 ```
 DEBUG=True
 SECRET_KEY=your-secret-key
+
+# For docker
 DB_NAME=ecommerce_db
 DB_USER=ecommerce_user
 DB_PASSWORD=yourpassword
 DB_HOST=db
 DB_PORT=5432
+
+# For Django
+DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:DB_PORT/DB_NAME
 ```
 
 ## 📂 Project Structure
