@@ -1,4 +1,4 @@
-# 🛒 E-Commerce Backend API
+# 🛒 Sellaris — Django E-Commerce Engine
 
 A scalable and secure e-commerce backend API built with Django and Django REST Framework.
 This project provides core commerce functionality including product management, cart handling, orders, and more — designed with production-level architecture in mind.
