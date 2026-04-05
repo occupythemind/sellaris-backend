@@ -1,0 +1,314 @@
+/* ============================================================
+   BASE.CSS — Design tokens, reset, typography, layout
+   Imported first by every page.
+============================================================ */
+
+/* ------------------------------------------------------------
+   DESIGN TOKENS
+   Edit these variables to retheme the entire site.
+------------------------------------------------------------ */
+:root {
+  /* Brand */
+  --indigo:        #6f00ff;
+  --indigo-hover:  #5500cc;
+  --indigo-faint:  rgba(111, 0, 255, 0.06);
+  --indigo-border: rgba(111, 0, 255, 0.18);
+
+  /* Surface — white-based light theme */
+  --bg:            #ffffff;
+  --bg-off:        #f7f7f8;   /* very light gray for alternating sections */
+  --bg-subtle:     #f0f0f2;   /* used for code blocks, pills */
+
+  /* Text */
+  --text-primary:   #111113;
+  --text-secondary: #555560;
+  --text-muted:     #9898a8;
+
+  /* Borders */
+  --border:         #e2e2e8;
+  --border-dark:    #c8c8d0;
+
+  /* Footer */
+  --footer-bg:      #0f0f11;
+  --footer-text:    #9898a8;
+  --footer-muted:   #55555f;
+  --footer-border:  #1e1e24;
+
+  /* Status colours (small accents only) */
+  --green:  #16a34a;
+  --amber:  #d97706;
+  --red:    #dc2626;
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* Spacing scale */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  /* Border radius */
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Transition */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t:    0.18s;
+}
+
+/* ------------------------------------------------------------
+   RESET
+------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background: var(--bg);
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol { list-style: none; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+
+/* ------------------------------------------------------------
+   SCROLLBAR
+------------------------------------------------------------ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-off); }
+::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--indigo); }
+
+/* ------------------------------------------------------------
+   LAYOUT UTILITIES
+------------------------------------------------------------ */
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* Section vertical rhythm */
+section {
+  padding: var(--space-3xl) 0;
+}
+
+/* Alternate section background — keeps the page from looking flat */
+section.bg-off {
+  background: var(--bg-off);
+}
+
+/* ------------------------------------------------------------
+   TYPOGRAPHY
+------------------------------------------------------------ */
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+/* Fluid font sizes: scale between mobile and desktop */
+h1 { font-size: clamp(2.4rem, 5.5vw, 4.2rem); }
+h2 { font-size: clamp(1.7rem, 3.5vw, 2.5rem); }
+h3 { font-size: 1.1rem; font-weight: 700; }
+h4 { font-size: 0.95rem; font-weight: 600; letter-spacing: 0; }
+
+p {
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--indigo);
+}
+
+/* ------------------------------------------------------------
+   SECTION HEADING BLOCK — reused across all sections
+   Usage: <div class="section-header"> ... </div>
+------------------------------------------------------------ */
+.section-header {
+  margin-bottom: var(--space-xl);
+}
+
+/* Small label above the heading */
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--indigo);        /* indigo used sparingly for this label */
+  margin-bottom: 12px;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 1px;
+  background: var(--indigo);
+}
+
+.section-header h2 {
+  margin-bottom: 12px;
+}
+
+.section-header p {
+  max-width: 520px;
+  font-size: 1.02rem;
+}
+
+/* ------------------------------------------------------------
+   BUTTONS
+------------------------------------------------------------ */
+
+/* Primary: solid black — clean, confident */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background var(--t) var(--ease), transform var(--t);
+}
+.btn-primary:hover {
+  background: var(--indigo);   /* hover reveals indigo */
+  transform: translateY(-1px);
+}
+
+/* Secondary: ghost with border */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: border-color var(--t), color var(--t), transform var(--t);
+}
+.btn-secondary:hover {
+  border-color: var(--indigo);
+  color: var(--indigo);
+  transform: translateY(-1px);
+}
+
+/* ------------------------------------------------------------
+   FEATHER ICON SIZE HELPER
+   Feather icons inherit font-size by default; this normalises them.
+------------------------------------------------------------ */
+[data-feather] {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+  flex-shrink: 0;
+}
+
+/* Icon size variants */
+.icon-sm [data-feather], [data-feather].sm { width: 14px; height: 14px; }
+.icon-lg [data-feather], [data-feather].lg { width: 22px; height: 22px; }
+
+/* ------------------------------------------------------------
+   ACCESSIBILITY
+------------------------------------------------------------ */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* Visible focus ring — important for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------
+   BACK TO TOP BUTTON
+   Floats in the bottom-right corner; appears after scrolling.
+------------------------------------------------------------ */
+#back-top {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 40px;
+  height: 40px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.2s var(--ease), background var(--t);
+  z-index: 50;
+}
+#back-top.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+#back-top:hover {
+  background: var(--indigo);
+  transform: translateY(-2px);
+}
+#back-top [data-feather] { width: 16px; height: 16px; }
+
+/* ------------------------------------------------------------
+   RESPONSIVE HELPERS
+------------------------------------------------------------ */
+@media (max-width: 640px) {
+  section { padding: 64px 0; }
+}
+
+@media (min-width: 1400px) {
+  .container { max-width: 1260px; }
+}
