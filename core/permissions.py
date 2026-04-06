@@ -15,3 +15,14 @@ class IsStaffOrReadOnly(BasePermission):
             and request.user.is_authenticated
             and request.user.is_staff
         )
+    
+
+class IsStaffUser(BasePermission):
+    """Allow only staffs"""
+    def has_permission(self, request, view):
+
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_staff
+        )

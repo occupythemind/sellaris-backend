@@ -1,0 +1,331 @@
+/* ============================================================
+   NAV.CSS — Top navigation bar + mobile drawer
+============================================================ */
+
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  background: rgba(255, 255, 255, 0.88);
+  /* Frosted glass: blurs whatever is behind the nav */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+
+/* Slightly more opaque once user scrolls */
+nav.scrolled {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+/* ---- Logo ---- */
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  transition: color var(--t);
+}
+.nav-logo:hover { color: var(--indigo); }
+
+/*
+  LOGO MARK — geometric placeholder using CSS.
+  Replace the inner <span> with:
+    <img src="assets/logo.svg" alt="Sellaris" width="30" height="30" />
+  Recommended: SVG, 30×30px, works on both white and dark backgrounds.
+  Free tools: Figma (figma.com), Vectr (vectr.com), Iconify (iconify.design)
+*/
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  background: var(--text-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0;
+  flex-shrink: 0;
+  transition: background var(--t);
+}
+.nav-logo:hover .logo-mark {
+  background: var(--indigo);
+}
+
+/* ---- Desktop links ---- */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-links a {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: color var(--t);
+  position: relative;
+}
+
+/* Underline slide-in on hover */
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 0;
+  width: 0; height: 1px;
+  background: var(--indigo);
+  transition: width var(--t) var(--ease);
+}
+.nav-links a:hover {
+  color: var(--text-primary);
+}
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* ---- GitHub CTA button ---- */
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background var(--t), transform var(--t);
+}
+.nav-cta:hover {
+  background: var(--indigo);
+  transform: translateY(-1px);
+}
+
+/* ---- Hamburger (mobile only) ---- */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+.nav-hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.25s var(--ease);
+}
+
+/* X state when menu is open */
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ---- Mobile drawer ---- */
+.nav-mobile {
+  display: none;
+  position: fixed;
+  top: 62px; left: 0; right: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 12px var(--space-lg) 20px;
+  flex-direction: column;
+  z-index: 99;
+}
+.nav-mobile.open { display: flex; }
+
+.nav-mobile a {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  transition: color var(--t);
+}
+.nav-mobile a:last-child { border-bottom: none; }
+.nav-mobile a:hover { color: var(--indigo); }
+
+/* ---- Responsive ---- */
+@media (max-width: 720px) {
+  .nav-links,
+  .nav-cta { display: none; }
+  .nav-hamburger { display: flex; }
+}
+
+
+/* ============================================================
+   FOOTER.CSS — Dark footer
+============================================================ */
+
+footer {
+  background: var(--footer-bg);
+  border-top: 1px solid var(--footer-border);
+  color: var(--footer-text);
+  padding: 56px 0 36px;
+}
+
+/* Grid: brand column + 3 link columns */
+.footer-top {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--footer-border);
+  margin-bottom: 28px;
+}
+
+/* ---- Brand column ---- */
+.footer-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #fff;
+  margin-bottom: 14px;
+  transition: color var(--t);
+}
+.footer-logo:hover { color: var(--indigo); }
+
+/* Logo mark reused but inverted for dark footer */
+.footer-logo .logo-mark {
+  background: #fff;
+  color: var(--footer-bg);
+}
+.footer-logo:hover .logo-mark {
+  background: var(--indigo);
+  color: #fff;
+}
+
+.footer-brand p {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--footer-text);
+  max-width: 260px;
+}
+
+/* Slogan — indigo accent text */
+.footer-slogan {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--indigo);
+  margin-top: 14px;
+  opacity: 0.9;
+}
+
+/* Social icon row */
+.footer-socials {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.footer-socials a {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--footer-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--footer-muted);
+  transition: border-color var(--t), color var(--t);
+}
+.footer-socials a:hover {
+  border-color: var(--indigo);
+  color: var(--indigo);
+}
+.footer-socials [data-feather] { width: 14px; height: 14px; }
+
+/* ---- Link columns ---- */
+.footer-col h4 {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.footer-col ul { display: flex; flex-direction: column; gap: 9px; }
+
+.footer-col a {
+  font-size: 0.875rem;
+  color: var(--footer-text);
+  transition: color var(--t);
+}
+.footer-col a:hover { color: #fff; }
+
+/* ---- Bottom bar ---- */
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-credit {
+  font-size: 0.8rem;
+  color: var(--footer-muted);
+}
+.footer-credit a {
+  color: var(--footer-text);
+  transition: color var(--t);
+}
+.footer-credit a:hover { color: #fff; }
+
+/* Project status pill */
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--footer-muted);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  /* Gentle pulse to indicate "live/active" */
+  animation: statusPulse 3s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

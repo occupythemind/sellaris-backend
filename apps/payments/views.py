@@ -30,7 +30,7 @@ class FlutterwaveWebhookAPIView(APIView):
         # We LOG this before any processing
         log = PaymentWebhookLog.objects.create(
             provider="flutterwave",
-            payload=json.loads(request.body),
+            payload=json.loads(payload),
             headers=dict(request.headers)
         )
         

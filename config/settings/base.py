@@ -208,6 +208,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "tasks.cleanup_data.cleanup_expired_guest_data",
         "schedule": crontab(hour=3, minute=0),  # daily 3AM
     },
+    "release-expired-stock-reservations": {
+        "task": "tasks.cleanup_data.release_expired_reservations",
+        "schedule": 300.0,  # every 5 mins
+    },
 }
 
 

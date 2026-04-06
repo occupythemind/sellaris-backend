@@ -24,7 +24,11 @@ from apps.users.oauth.providers.apple import AppleOAuthService
 from apps.users.oauth.oauth_service import OAuthService
 from tasks.cleanup_data import delete_user_account
 from tasks.send_email import send_verification_email_task
-from .serializers import RegisterSerializer, UserUpdateSerializer
+from .serializers import (
+    RegisterSerializer, 
+    UserUpdateSerializer, 
+    UserReadSerializer
+)
 from apps.users.throttles import (
     RegisterThrottle,
     LoginThrottle,
@@ -143,7 +147,7 @@ class ResendVerificationAPIView(APIView):
         return Response({"message": "If account exists, email sent"})
 
 
-class AccountAPIView(APIView):
+class AccountUpdateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
@@ -156,6 +160,15 @@ class AccountAPIView(APIView):
         serializer.save()
 
         return Response({"detail": "Account updated successfully"})
+
+
+class AccountInfoAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserReadSerializer(user)
+        return Response(serializer.data)
 
 
 class DeleteAccountAPIView(APIView):

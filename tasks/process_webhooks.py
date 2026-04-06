@@ -8,9 +8,12 @@ import requests
 import json
 import logging
 
+from apps.payments.models import Payment, PaymentStatus
+from apps.inventory.services import confirm_stock
+
+
 logger = logging.getLogger("payments")
 
-from apps.payments.models import Payment, PaymentStatus
 
 @shared_task(bind=True, max_retries=3)
 @transaction.atomic
@@ -77,6 +80,13 @@ def process_flutterwave_webhook(self, payload, log):
         payment.transaction_id = str(flw_tx_id)
         payment.confirmed_at = timezone.now()
         payment.save()
+        
+        # Update ProductVariant stock quantity
+        for item in order.items.select_related("product_variant"):
+            confirm_stock(
+                item.product_variant, 
+                item.quantity
+            )
 
         # Update the Log after processing
         log.status = "success"
@@ -87,7 +97,7 @@ def process_flutterwave_webhook(self, payload, log):
         if order.status.upper() != "PENDING":
             return
         order.status = "PAID".lower()
-        order.save(update_fields=["status"])
+        order.save(update_fields=["status"])  
 
     except Exception as e:
         logger.error("Payment verification failed", exc_info=True)
@@ -169,6 +179,10 @@ def process_paystack_webhook(self, payload, log):
             return
         order.status = "PAID".lower()
         order.save(update_fields=["status"])
+
+        # Update ProductVariant stock quantity
+        for item in order.items.select_related("product_variant"):
+            confirm_stock(item.product_variant, item.quantity)
 
     except Exception as e:
         logger.error(

@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures proper scaling and touch zoom on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Page identity -->
+  <title>Sellaris — Django E-Commerce Engine</title>
+  <meta name="description" content="A scalable, secure Django e-commerce backend. Products, carts, orders, payments — API-first and Docker-ready." />
+
+  <!-- Open Graph: controls how the page appears when shared on social media -->
+  <meta property="og:title"       content="Sellaris — Django E-Commerce Engine" />
+  <meta property="og:description" content="Modular, API-first e-commerce backend built with Django REST Framework." />
+  <meta property="og:type"        content="website" />
+  <!-- TODO: Replace with your deployed URL -->
+  <meta property="og:url"         content="https://sellaris.dev" />
+
+  <!-- Canonical URL: tells search engines the preferred URL for this page -->
+  <!-- TODO: Replace with your deployed URL -->
+  <link rel="canonical" href="https://sellaris.dev" />
+
+  <!--
+    FAVICON
+    TODO: Add your favicon files to an /assets/ folder.
+    Generate them at: https://favicon.io or https://realfavicongenerator.net
+    Then uncomment these lines:
+    <link rel="icon" type="image/svg+xml"  href="assets/favicon.svg" />
+    <link rel="icon" type="image/png"      href="assets/favicon.png" />
+    <link rel="apple-touch-icon"           href="assets/apple-touch-icon.png" />
+  -->
+
+  <!-- Google Fonts: Syne (display) + DM Mono (code) + Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Feather Icons: lightweight clean icon set (used throughout) -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <!-- Marked.js: converts markdown text to HTML (used in the Docs section) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- highlight.js: syntax highlighting inside rendered markdown code blocks -->
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" />
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
+  <!-- Site stylesheets — load order matters: base first, then components -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/nav-footer.css" />
+  <link rel="stylesheet" href="css/sections.css" />
+  <link rel="stylesheet" href="css/docs.css" />
+</head>
+
+<body>
+
+  <!-- ===========================================================
+       NAVIGATION
+  =========================================================== -->
+  <nav id="navbar" role="navigation" aria-label="Main navigation">
+
+    <!-- Logo -->
+    <a href="#hero" class="nav-logo" aria-label="Sellaris home">
+      <!--
+        LOGO PLACEHOLDER — replace the .logo-mark div with your actual logo:
+          <img src="assets/logo.svg" alt="Sellaris" width="30" height="30" />
+        Recommended: SVG, 30×30px, works on white & dark backgrounds.
+        Free tools: figma.com  |  vectr.com  |  iconify.design
+      -->
+      <span class="logo-mark" aria-hidden="true">S</span>
+      Sellaris
+    </a>
+
+    <!-- Desktop nav links -->
+    <ul class="nav-links" role="list">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#api">API</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#docs">Docs</a></li>
+      <li><a href="#getting-started">Get Started</a></li>
+    </ul>
+
+    <!-- GitHub CTA -->
+    <a
+      href="https://github.com/occupythemind/sellaris-backend"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="nav-cta"
+      aria-label="View Sellaris on GitHub"
+    >
+      <i data-feather="github"></i>
+      GitHub
+    </a>
+
+    <!-- Mobile hamburger button -->
+    <button
+      class="nav-hamburger"
+      id="hamburger"
+      aria-label="Toggle navigation menu"
+      aria-expanded="false"
+      aria-controls="mobileMenu"
+    >
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile drawer menu -->
+  <div class="nav-mobile" id="mobileMenu" role="dialog" aria-label="Mobile navigation">
+    <a href="#features"        onclick="closeMenu()">Features</a>
+    <a href="#api"             onclick="closeMenu()">API</a>
+    <a href="#architecture"    onclick="closeMenu()">Architecture</a>
+    <a href="#docs"            onclick="closeMenu()">Docs</a>
+    <a href="#roadmap"         onclick="closeMenu()">Roadmap</a>
+    <a href="#getting-started" onclick="closeMenu()">Get Started</a>
+    <a
+      href="https://github.com/occupythemind/sellaris-backend"
+      target="_blank"
+      rel="noopener noreferrer"
+    >GitHub ↗</a>
+  </div>
+
+
+  <!-- ===========================================================
+       HERO
+  =========================================================== -->
+  <section id="hero" aria-labelledby="hero-heading">
+    <div class="container">
+      <div class="hero-inner">
+
+        <!-- Status badge -->
+        <div class="hero-badge" role="status" aria-live="polite">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          Work in progress &nbsp;·&nbsp; v1 coming soon
+        </div>
+
+        <!-- Headline — indigo only on the key phrase -->
+        <h1 class="hero-title" id="hero-heading">
+          The <span class="accent">backend engine</span><br />
+          every e-commerce<br />
+          service needs.
+        </h1>
+
+        <p class="hero-subtitle">
+          Sellaris is a modular, API-first Django backend — handling products, carts,
+          orders, payments, and more. Drop it in, wire up your frontend, and ship faster.
+        </p>
+
+        <!-- CTA buttons -->
+        <div class="hero-actions">
+          <a href="#getting-started" class="btn-primary">
+            <i data-feather="terminal"></i>
+            Get Started
+          </a>
+          <a
+            href="https://github.com/occupythemind/sellaris-backend"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary"
+          >
+            <i data-feather="github"></i>
+            View on GitHub
+          </a>
+          <a href="#docs" class="btn-secondary">
+            <i data-feather="book-open"></i>
+            Read the Docs
+          </a>
+        </div>
+
+        <!-- Stack pills -->
+        <div class="hero-stack" aria-label="Built with">
+          <span class="hero-stack-label">Built with</span>
+          <span class="stack-pill">🐍 Django</span>
+          <span class="stack-pill">⚡ DRF</span>
+          <span class="stack-pill">🐘 PostgreSQL</span>
+          <span class="stack-pill">🐳 Docker</span>
+          <span class="stack-pill">🌿 Celery (planned)</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       FEATURES
+  =========================================================== -->
+  <section id="features" class="bg-off" aria-labelledby="features-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">What it does</span>
+        <h2 id="features-heading">Core commerce, fully covered.</h2>
+        <p>Every module your e-commerce service needs — cleanly separated, independently deployable, and ready to extend.</p>
+      </div>
+
+      <div class="features-grid" role="list">
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="package"></i></div>
+          <h3>Product Catalog</h3>
+          <p>Full product management — create, update, categorise, and query products at scale. Variants and inventory tracking on the roadmap.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="shopping-cart"></i></div>
+          <h3>Cart System</h3>
+          <p>Session-aware cart handling with add, update, and remove operations. Coupon support planned as the project matures.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="heart"></i></div>
+          <h3>Wishlist</h3>
+          <p>Let users save products for later. Wishlist endpoints are fully available and tied to user accounts.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="file-text"></i></div>
+          <h3>Order Processing</h3>
+          <p>End-to-end order lifecycle — creation, status management, and tracking. Supports both guest and authenticated users.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="credit-card"></i></div>
+          <h3>Payments</h3>
+          <p>Payment endpoint is live and ready for Flutterwave and Paystack wiring. Secure verification in progress.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="user"></i></div>
+          <h3>User Management</h3>
+          <p>Authentication, registration, and profile endpoints. Guest checkout support and role-based access on the roadmap.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="bell"></i></div>
+          <h3>Notifications</h3>
+          <p>Notification module scaffolded and ready. Email notifications via Celery are coming — the architecture already supports async tasks.</p>
+        </article>
+
+        <article class="feature-card" role="listitem">
+          <div class="feature-icon" aria-hidden="true"><i data-feather="box"></i></div>
+          <h3>Docker-First Dev</h3>
+          <p>One command spins up the entire stack — Django, PostgreSQL, and future Redis/Celery — all containerised and environment-configured.</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       API ENDPOINTS
+  =========================================================== -->
+  <section id="api" aria-labelledby="api-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">REST API</span>
+        <h2 id="api-heading">Clean endpoints. RESTful by design.</h2>
+        <p>All endpoints follow REST conventions and return JSON. Versioned at <code>/api/v1/</code> so breaking changes never surprise your frontend.</p>
+      </div>
+
+      <div class="api-layout">
+
+        <!-- Endpoint list -->
+        <div class="endpoint-list" role="list" aria-label="Available API endpoints">
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-get">GET</span>
+            <span class="endpoint-path">/api/v1/products/</span>
+            <span class="endpoint-desc">Catalog</span>
+          </div>
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-path">/api/v1/carts/</span>
+            <span class="endpoint-desc">Cart ops</span>
+          </div>
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-get">GET</span>
+            <span class="endpoint-path">/api/v1/wishlists/</span>
+            <span class="endpoint-desc">Wishlist</span>
+          </div>
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-path">/api/v1/orders/</span>
+            <span class="endpoint-desc">Orders</span>
+          </div>
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-path">/api/v1/payments/</span>
+            <span class="endpoint-desc">Payments</span>
+          </div>
+
+          <div class="endpoint-item" role="listitem">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-path">/api/v1/users/</span>
+            <span class="endpoint-desc">Auth</span>
+          </div>
+
+        </div>
+
+        <!-- Code example panel -->
+        <div class="code-panel" aria-label="Example API request">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              <span class="code-label">example — fetch products</span>
+            </div>
+            <div class="code-body">
+              <pre><span class="tok-dim">// Fetch the product catalog</span>
+<span class="tok-dim">// Replace with your deployed domain</span>
+
+<span class="tok-key">const</span> response = <span class="tok-key">await</span> fetch(
+  <span class="tok-str">"https://your-domain.com/api/v1/products/"</span>,
+  {
+    <span class="tok-key">method</span>: <span class="tok-str">"GET"</span>,
+    <span class="tok-key">headers</span>: {
+      <span class="tok-str">"Content-Type"</span>: <span class="tok-str">"application/json"</span>,
+      <span class="tok-str">"Authorization"</span>: <span class="tok-str">"Token &lt;your-token&gt;"</span>
+    }
+  }
+);
+
+<span class="tok-key">const</span> data = <span class="tok-key">await</span> response.json();
+<span class="tok-dim">// → { count: 42, results: [ ... ] }</span>
+
+<span class="tok-dim">// POST a new cart item</span>
+<span class="tok-key">await</span> fetch(<span class="tok-str">"/api/v1/carts/"</span>, {
+  <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+  <span class="tok-key">body</span>: JSON.stringify({
+    <span class="tok-key">product_id</span>: <span class="tok-num">7</span>,
+    <span class="tok-key">quantity</span>:   <span class="tok-num">2</span>
+  })
+});</pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       ARCHITECTURE
+  =========================================================== -->
+  <section id="architecture" class="bg-off" aria-labelledby="arch-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Under the hood</span>
+        <h2 id="arch-heading">Built for scale from day one.</h2>
+        <p>Structured for the real world — clean separation of concerns and a clear path to microservices when you're ready.</p>
+      </div>
+
+      <div class="arch-grid" role="list">
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">01 / LAYERS</div>
+          <h3>Service-Layer Architecture</h3>
+          <p>Business logic lives in a dedicated <code>services/</code> layer — separate from views and models. Keeps API handlers thin, and logic testable in isolation.</p>
+        </article>
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">02 / MODULES</div>
+          <h3>Domain-Based Apps</h3>
+          <p>Each domain (users, products, orders…) is an independent Django app under <code>apps/</code>. Add, remove, or replace domains without touching unrelated code.</p>
+        </article>
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">03 / ASYNC</div>
+          <h3>Celery-Ready Tasks</h3>
+          <p>Background jobs live in <code>tasks/</code> and are Celery-ready. Hook in Redis and you have async processing with zero refactoring.</p>
+        </article>
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">04 / CORE</div>
+          <h3>Shared Utilities</h3>
+          <p>Cross-cutting concerns — exceptions, base serializers, permissions — centralised in <code>core/</code> so they're consistent across every app.</p>
+        </article>
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">05 / DEPLOY</div>
+          <h3>Docker Compose Stack</h3>
+          <p>One <code>docker compose up</code> gives you Django + PostgreSQL running together. The compose file lives in <code>docker/</code>, keeping the project root clean.</p>
+        </article>
+
+        <article class="arch-card" role="listitem">
+          <div class="arch-number">06 / FUTURE</div>
+          <h3>Microservices Path</h3>
+          <p>Because apps are decoupled and communicate via service layers, breaking Sellaris into microservices later is a refactor — not a rewrite.</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       ROADMAP
+  =========================================================== -->
+  <section id="roadmap" aria-labelledby="roadmap-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">What's next</span>
+        <h2 id="roadmap-heading">Roadmap</h2>
+        <p>Sellaris is actively developed. Here's what's in progress and what's planned.</p>
+      </div>
+
+      <div class="roadmap-grid" role="list">
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot in-progress" aria-label="In progress"></span>
+          <div>
+            <h4>Payment Integration</h4>
+            <p>Flutterwave &amp; Paystack — gateway hooks are in place.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot in-progress" aria-label="In progress"></span>
+          <div>
+            <h4>Auth &amp; Authorisation</h4>
+            <p>JWT/Token auth with role-based access. Guest checkout included.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot in-progress" aria-label="In progress"></span>
+          <div>
+            <h4>Security Hardening</h4>
+            <p>Rate limiting, input validation, and secure payment verification.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot planned" aria-label="Planned"></span>
+          <div>
+            <h4>Product Variants &amp; Inventory</h4>
+            <p>Size, colour, and stock level tracking per SKU.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot planned" aria-label="Planned"></span>
+          <div>
+            <h4>Order Tracking</h4>
+            <p>Real-time status updates from placed → fulfilled.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot planned" aria-label="Planned"></span>
+          <div>
+            <h4>Email Notifications</h4>
+            <p>Transactional emails sent asynchronously via Celery.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot planned" aria-label="Planned"></span>
+          <div>
+            <h4>API Rate Limiting</h4>
+            <p>DRF throttling + Redis-backed rate limiting per user/IP.</p>
+          </div>
+        </div>
+
+        <div class="roadmap-item" role="listitem">
+          <span class="r-dot planned" aria-label="Planned"></span>
+          <div>
+            <h4>Admin Dashboard</h4>
+            <p>Enhanced Django admin with analytics and order views.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       DOCUMENTATION
+       Markdown is rendered inline from js/docs.js.
+       To pull live files from GitHub once the repo is public,
+       uncomment the fetch block inside js/docs.js.
+  =========================================================== -->
+  <section id="docs" aria-labelledby="docs-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Documentation</span>
+        <h2 id="docs-heading">Everything you need to know.</h2>
+        <p>Read about how Sellaris works, how to deploy it, and how to integrate it with your service.</p>
+      </div>
+
+      <div class="docs-layout">
+
+        <!-- Sidebar -->
+        <aside class="docs-sidebar" aria-label="Documentation navigation">
+          <div class="docs-sidebar-heading">Pages</div>
+          <nav class="docs-nav" role="navigation">
+            <!--
+              Each item calls loadDoc(pageId, this).
+              The page ID must match a key in the DOCS object in js/docs.js.
+              "this" passes the clicked element so the active class can be set.
+            -->
+            <div class="docs-nav-item" onclick="loadDoc('overview', this)"      role="button" tabindex="0">Overview</div>
+            <div class="docs-nav-item" onclick="loadDoc('setup', this)"         role="button" tabindex="0">Setup &amp; Installation</div>
+            <div class="docs-nav-item" onclick="loadDoc('api-ref', this)"       role="button" tabindex="0">API Reference</div>
+            <div class="docs-nav-item" onclick="loadDoc('architecture', this)"  role="button" tabindex="0">Architecture</div>
+            <div class="docs-nav-item" onclick="loadDoc('env', this)"           role="button" tabindex="0">Environment Variables</div>
+            <div class="docs-nav-item" onclick="loadDoc('contributing', this)"  role="button" tabindex="0">Contributing</div>
+          </nav>
+        </aside>
+
+        <!-- Content area -->
+        <div class="docs-content">
+
+          <!-- Notice: shown while repo is private -->
+          <div class="docs-notice" role="note">
+            <i data-feather="info"></i>
+            Docs are embedded. Once the repo is public, update <code>js/docs.js</code> to fetch live from GitHub.
+          </div>
+
+          <!-- Markdown renders here -->
+          <div class="docs-body" id="docsBody" aria-live="polite">
+            <div class="docs-loading">
+              <div class="spinner" aria-hidden="true"></div>
+              Loading…
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       TESTING
+  =========================================================== -->
+  <section id="testing" aria-labelledby="testing-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Quality</span>
+        <h2 id="testing-heading">We test it. Regularly.</h2>
+        <p>Sellaris undergoes routine testing to ensure every module keeps working as the codebase grows.</p>
+      </div>
+
+      <div class="testing-grid" role="list">
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-passing">● Passing</span>
+          <h3>Product API</h3>
+          <p>CRUD operations, list filtering, and pagination covered with unit and integration tests.</p>
+        </article>
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-passing">● Passing</span>
+          <h3>Cart Logic</h3>
+          <p>Add-to-cart, update quantity, and remove-item flows tested end-to-end via the DRF test client.</p>
+        </article>
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-wip">◐ In Progress</span>
+          <h3>Order Workflow</h3>
+          <p>Order creation and status transition tests being written as the order module stabilises.</p>
+        </article>
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-wip">◐ In Progress</span>
+          <h3>Payment Verification</h3>
+          <p>Mock gateway responses being introduced for payment unit testing.</p>
+        </article>
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-planned">○ Planned</span>
+          <h3>Auth &amp; Permissions</h3>
+          <p>Full token auth and permission boundary tests planned alongside the auth module.</p>
+        </article>
+
+        <article class="test-card" role="listitem">
+          <span class="test-badge badge-planned">○ Planned</span>
+          <h3>Load &amp; Rate Limiting</h3>
+          <p>Performance and throttling tests scheduled after rate limiting is implemented.</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       GETTING STARTED
+  =========================================================== -->
+  <section id="getting-started" class="bg-off" aria-labelledby="gs-heading">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Quick start</span>
+        <h2 id="gs-heading">Up and running in minutes.</h2>
+        <p>All you need is Docker and Docker Compose. No local Python setup required.</p>
+      </div>
+
+      <div class="steps" role="list">
+
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 1">01</div>
+          <div class="step-body">
+            <h3>Clone the repository</h3>
+            <p>Pull Sellaris from GitHub to your local machine.</p>
+            <div class="cmd-block">
+              <code>
+                <span class="prompt" aria-hidden="true">$</span>
+                git clone https://github.com/occupythemind/sellaris-backend.git
+              </code>
+              <button
+                class="copy-btn"
+                data-cmd="git clone https://github.com/occupythemind/sellaris-backend.git"
+                aria-label="Copy clone command"
+              >
+                <i data-feather="copy"></i> copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 2">02</div>
+          <div class="step-body">
+            <h3>Create your <code>.env</code> file</h3>
+            <p>Add a <code>.env</code> file in the project root with your database credentials and secret key.</p>
+            <div class="cmd-block">
+              <code>
+                <span class="prompt" aria-hidden="true">$</span>
+                cp .env.example .env &amp;&amp; nano .env
+              </code>
+              <button
+                class="copy-btn"
+                data-cmd="cp .env.example .env && nano .env"
+                aria-label="Copy env setup command"
+              >
+                <i data-feather="copy"></i> copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 3">03</div>
+          <div class="step-body">
+            <h3>Start the Docker stack</h3>
+            <p>Builds and runs Django + PostgreSQL together inside containers.</p>
+            <div class="cmd-block" style="flex-wrap:wrap; gap:8px;">
+              <code style="word-break:break-all;">
+                <span class="prompt" aria-hidden="true">$</span>
+                docker compose --env-file .env -f docker/docker-compose.yml up --build
+              </code>
+              <button
+                class="copy-btn"
+                data-cmd="docker compose --env-file .env -f docker/docker-compose.yml up --build"
+                aria-label="Copy docker compose command"
+              >
+                <i data-feather="copy"></i> copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 4">04</div>
+          <div class="step-body">
+            <h3>Hit the API</h3>
+            <p>Django listens at <code>http://localhost:8000</code>. Try the products endpoint to verify it's running.</p>
+            <div class="cmd-block">
+              <code>
+                <span class="prompt" aria-hidden="true">$</span>
+                curl http://localhost:8000/api/v1/products/
+              </code>
+              <button
+                class="copy-btn"
+                data-cmd="curl http://localhost:8000/api/v1/products/"
+                aria-label="Copy curl command"
+              >
+                <i data-feather="copy"></i> copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       CTA BANNER
+  =========================================================== -->
+  <section id="cta" aria-label="Call to action">
+    <div class="container">
+      <div class="cta-inner">
+        <h2>Power your store with Sellaris.</h2>
+        <p>Open source, MIT licensed, actively maintained. Fork it, extend it, ship with it.</p>
+        <div class="cta-actions">
+          <a
+            href="https://github.com/occupythemind/sellaris-backend"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary"
+          >
+            <i data-feather="github"></i>
+            Fork on GitHub
+          </a>
+          <a href="#docs" class="btn-secondary">
+            <i data-feather="book-open"></i>
+            Browse Docs
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===========================================================
+       FOOTER
+  =========================================================== -->
+  <footer role="contentinfo">
+    <div class="container">
+
+      <div class="footer-top">
+
+        <!-- Brand column -->
+        <div class="footer-brand">
+          <a href="#hero" class="footer-logo" aria-label="Sellaris home">
+            <!--
+              LOGO (footer version): same placeholder, but inverted colours.
+              Replace with: <img src="assets/logo-white.svg" alt="Sellaris" width="28" height="28" />
+            -->
+            <span class="logo-mark" aria-hidden="true">S</span>
+            &nbsp;Sellaris
+          </a>
+          <p>A scalable, modular Django e-commerce engine — built to power any commerce service as a drop-in backend.</p>
+          <p class="footer-slogan">"Building safer, secure &amp; reliable systems."</p>
+
+          <!-- Social icons -->
+          <!-- TODO: Replace # hrefs with your actual social profile URLs -->
+          <div class="footer-socials" aria-label="Social profiles">
+            <a href="https://github.com/occupythemind" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+              <i data-feather="github"></i>
+            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X">
+              <i data-feather="twitter"></i>
+            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+              <i data-feather="linkedin"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Project links -->
+        <div class="footer-col">
+          <h4>Project</h4>
+          <ul role="list">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#api">API Reference</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources links -->
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul role="list">
+            <li><a href="#docs">Documentation</a></li>
+            <li><a href="#getting-started">Quick Start</a></li>
+            <li>
+              <a
+                href="https://github.com/occupythemind/sellaris-backend"
+                target="_blank"
+                rel="noopener noreferrer"
+              >GitHub Repo ↗</a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/occupythemind/sellaris-backend/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Open an Issue ↗</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Legal links -->
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul role="list">
+            <li>
+              <a
+                href="https://github.com/occupythemind/sellaris-backend/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+              >MIT License ↗</a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/occupythemind/sellaris-backend/blob/main/CONTRIBUTING.md"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Contributing ↗</a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="footer-bottom">
+        <p class="footer-credit">
+          Built by
+          <a href="https://github.com/occupythemind" target="_blank" rel="noopener noreferrer">
+            David Akaluzia (David A.)
+          </a>
+          &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; &copy; <span id="year"></span> Sellaris
+        </p>
+        <div class="footer-status" aria-label="Project status">
+          <span class="status-dot" aria-hidden="true"></span>
+          Active development
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+
+  <!-- Back to top button -->
+  <button id="back-top" aria-label="Back to top">
+    <i data-feather="arrow-up"></i>
+  </button>
+
+
+  <!-- ===========================================================
+       SCRIPTS
+       Loaded at end of body so DOM is ready when they run.
+       main.js handles sitewide behaviour; docs.js handles the
+       documentation section specifically.
+  =========================================================== -->
+  <script src="js/main.js"></script>
+  <script src="js/docs.js"></script>
+
+</body>
+</html>

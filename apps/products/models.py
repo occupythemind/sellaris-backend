@@ -73,7 +73,10 @@ class ProductVariant(models.Model):
     )
 
     price = get_price_decimal_field() # Explicitly set max_digits and decimal_places
+
+    # available_stock = stock - reserved_stock
     stock_quantity = models.PositiveIntegerField(default=0)
+    reserved_stock = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.product.name} - {self.color} {self.storage_size}"
