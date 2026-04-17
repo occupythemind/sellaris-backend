@@ -47,6 +47,8 @@ EMAIL_VERIFY_URL = f"{FRONTEND_BASE_URL}{env("VERIFY_EMAIL_PATH")}"
 
 ALLOWED_HOSTS = []
 
+CORS_ALLOW_CREDENTIALS = True
+
 # Email Config
 EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")
 
@@ -88,6 +90,8 @@ INSTALLED_APPS = [
     # 3rd party apps
     'storages',
     'django_celery_beat',
+    'corsheaders',
+    'django_filters',
 
     # default django apps
     'django.contrib.admin',
@@ -101,6 +105,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', # cors
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -229,9 +234,16 @@ REST_FRAMEWORK = {
         "verify_email": "10/min",
         "resend_verification": "2/min",
         "oauth": "10/min",
-    }
+    },
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.CustomPagination",
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
 }
 
+APPEND_SLASH = True # Append trailing slash
 
 # Logging config
 
@@ -266,3 +278,23 @@ LOGGING = {
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CURRENCY_CHOICES = [
+    # Major International Currencies (Supported by Flutterwave/Stripe)
+    ('USD', 'USD - US Dollar'),
+    ('EUR', 'EUR - Euro'),
+    ('GBP', 'GBP - British Pound'),
+    ('CAD', 'CAD - Canadian Dollar'),
+    ('JPY', 'JPY - Japanese Yen'),
+    
+    # Major African Currencies (Supported by Flutterwave/Paystack)
+    ('NGN', 'NGN - Nigerian Naira'),
+    ('GHS', 'GHS - Ghanaian Cedi'),
+    ('KES', 'KES - Kenyan Shilling'),
+    ('ZAR', 'ZAR - South African Rand'),
+    ('TZS', 'TZS - Tanzanian Shilling'),
+    ('UGX', 'UGX - Ugandan Shilling'),
+    ('RWF', 'RWF - Rwandan Franc'),
+    ('XAF', 'XAF - Central African CFA Franc'),
+    ('XOF', 'XOF - West African CFA Franc'),
+]

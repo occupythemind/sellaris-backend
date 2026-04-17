@@ -8,7 +8,8 @@ from .views import (
     ProductImageViewSet,
 )
 
-router = DefaultRouter()
+# For non-trailing slash
+router = DefaultRouter(trailing_slash=False)
 router.register('categories', CategoryViewSet, basename='category')
 router.register('products', ProductViewSet, basename='product')
 router.register('product-variants', ProductVariantViewSet, basename='product-variant')

@@ -58,6 +58,9 @@ services:
       - ..:/app
     env_file:
       - ../.env
+    depends_on:
+      redis:
+        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
     networks:
       - app-network
 
@@ -70,6 +73,9 @@ services:
       - ..:/app
     env_file:
       - ../.env
+    depends_on:
+      redis:
+        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
     networks:
       - app-network
 
@@ -82,6 +88,9 @@ services:
       - ..:/app
     env_file:
       - ../.env
+    depends_on:
+      redis:
+        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
     networks:
       - app-network
 

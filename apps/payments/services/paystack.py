@@ -26,6 +26,6 @@ class PaystackService:
         data = response.json()
 
         if not data.get("status"):
-            raise Exception("Paystack initialization failed")
+            raise Exception(data.get("message"))
 
         return data["data"]["authorization_url"]

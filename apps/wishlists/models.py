@@ -42,6 +42,9 @@ class Wishlist(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["created_at"]),
+            models.Index(fields=["is_public"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["session_id"]),
         ]
 
         constraints = [
@@ -60,6 +63,7 @@ class Wishlist(models.Model):
                 name="unique_wishlist_name_per_owner"
             )
         ]
+
 
     def __str__(self):
         return self.name or f"Wishlist {self.id}"

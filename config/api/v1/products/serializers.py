@@ -52,6 +52,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "base_price",
+            "currency",
             "slug",
         ]
         read_only_fields = ["id"]
@@ -90,6 +91,7 @@ class ProductReadSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "base_price",
+            "currency",
             "slug",
         ]
 
@@ -112,7 +114,9 @@ class ProductVariantWriteSerializer(serializers.ModelSerializer):
             "color",
             "storage_size",
             "price",
+            "currency",
             "stock_quantity",
+            "reserved_stock",
         ]
         read_only_fields = ["id"]
 
@@ -134,7 +138,9 @@ class ProductVariantReadSerializer(serializers.ModelSerializer):
             "color",
             "storage_size",
             "price",
+            "currency",
             "stock_quantity",
+            "reserved_stock",
         ]
 
 
@@ -246,7 +252,9 @@ class ProductVariantDetailSerializer(serializers.ModelSerializer):
             "color",
             "storage_size",
             "price",
+            "currency",
             "stock_quantity",
+            "reserved_stock",
             "specifications",
             "images",
         ]

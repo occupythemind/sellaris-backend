@@ -1,8 +1,11 @@
 from django.db import models
 from uuid import uuid4
+from django.conf import settings
 from django.core.validators import FileExtensionValidator
+
 from core.validators import ValidateImageSize
 from core.utils import get_price_decimal_field
+
 
 class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -14,6 +17,7 @@ class Category(models.Model):
     
     def __str__(self):
         return self.name
+
 
 class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -41,8 +45,15 @@ class Product(models.Model):
 
     base_price = get_price_decimal_field() # Explicitly set max_digits and decimal_places
 
+    currency = models.CharField(
+        max_length=3,
+        choices=settings.CURRENCY_CHOICES,
+        default='USD',
+    )
+
     def __str__(self):
         return f"{self.brand} {self.name}"
+
 
 # Helps tell the different types (variants) of that product
 class ProductVariant(models.Model):
@@ -74,12 +85,19 @@ class ProductVariant(models.Model):
 
     price = get_price_decimal_field() # Explicitly set max_digits and decimal_places
 
-    # available_stock = stock - reserved_stock
+    currency = models.CharField(
+        max_length=3,
+        choices=settings.CURRENCY_CHOICES,
+        default='USD',
+    )
+
+    # available_stock = stock_quantity - reserved_stock
     stock_quantity = models.PositiveIntegerField(default=0)
     reserved_stock = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.product.name} - {self.color} {self.storage_size}"
+
 
 class Specification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -104,6 +122,7 @@ class Specification(models.Model):
 
     def __str__(self):
         return f"{self.name}: {self.value}"
+
 
 class ProductImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)

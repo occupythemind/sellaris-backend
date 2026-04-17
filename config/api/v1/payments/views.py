@@ -1,16 +1,25 @@
 from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
+from django.conf import settings
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import AllowAny
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.response import Response
 from rest_framework import status
-from django.conf import settings
+
+import logging
+
 from apps.orders.models import Order
 from apps.payments.models import Payment, PaymentStatus
 from apps.payments.services.factory import get_payment_service
-import logging
+from .serializers import PaymentRecordReadSerializer
+
 
 logger = logging.getLogger("payments")
     
+
 class PaymentInitializeAPIView(APIView):
 
     @transaction.atomic
@@ -99,4 +108,51 @@ class PaymentInitializeAPIView(APIView):
             "payment_link": payment_link,
             "reference_id": payment.reference_id
         })
-    
+
+
+class PaymentRecordListView(ListAPIView):
+    serializer_class = PaymentRecordReadSerializer
+    permission_classes = [AllowAny]
+
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter,
+        OrderingFilter,
+    ]
+
+    filterset_fields = [
+        "status",
+        "provider",
+        "currency",
+    ]
+
+    search_fields = [
+        "reference_id",
+        "=transaction_id",
+        "order__id",
+    ]
+
+    ordering_fields = [
+        "created_at",
+        "confirmed_at",
+        "amount",
+    ]
+
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        queryset = Payment.objects.select_related("order")
+
+        # Authenticated users → their own orders
+        if user.is_authenticated:
+            return queryset.filter(order__user=user)
+
+        # Guest users → session-based access
+        session_key = self.request.session.session_key
+
+        if not session_key:
+            return queryset.none()
+
+        return queryset.filter(order__session_id=session_key)

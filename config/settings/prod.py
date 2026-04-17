@@ -1,7 +1,11 @@
 from .base import *
 
 DEBUG = False
+
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+
+# CORs headers config
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS')
 
 # Use ASGI on production
 ASGI_APPLICATION = 'config.asgi.application'

@@ -1,3 +1,5 @@
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -91,6 +93,30 @@ class CartItemAPIView(ModelViewSet):
     queryset = CartItem.objects.all()
     permission_classes = [AllowAny]
 
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    # Filtering
+    filterset_fields = [
+        "product_variant",
+        "product_variant__product",
+    ]
+
+    # Search
+    search_fields = [
+        "product_variant__product__name",
+        "product_variant__product__brand",
+        "product_variant__color",
+        "product_variant__sku_code",
+    ]
+
+    # Ordering
+    ordering_fields = [
+        "quantity",
+        "price",
+        "created_at",
+    ]
+    ordering = ["-created_at"]
+
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return CartItemReadSerializer
@@ -114,7 +140,11 @@ class CartItemAPIView(ModelViewSet):
     # Query restriction
     def get_queryset(self):
         cart = self._get_cart()
-        return CartItem.objects.filter(cart=cart).select_related("product_variant")
+        return (
+            CartItem.objects
+            .filter(cart=cart)
+            .select_related("product_variant", "product_variant__product")
+        )
 
     # Create (Add to cart)
     def create(self, request, *args, **kwargs):
@@ -130,22 +160,21 @@ class CartItemAPIView(ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    # Update quantity
     def update(self, request, *args, **kwargs):
-        item = self.get_object()
+        instance = self.get_object()
 
-        quantity = int(request.data.get("quantity"))
+        serializer = self.get_serializer(
+            instance,
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
 
-        if quantity is None or int(quantity) <= 0:
-            return Response(
-                {"detail": "Quantity must be greater than 0"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        item = serializer.save()
 
-        item.quantity = quantity
-        item.save(update_fields=["quantity"])
-
-        return Response(CartItemReadSerializer(item).data)
+        return Response(
+            CartItemReadSerializer(item).data,
+            status=status.HTTP_200_OK
+        )
 
     # Partial update
     def partial_update(self, request, *args, **kwargs):

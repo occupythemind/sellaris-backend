@@ -74,9 +74,10 @@ class OrderWriteSerializer(ModelSerializer):
                 item.quantity = max(available, 0)
 
             # update total
-            item.total_price = item.price * item.quantity
+            #DEBUG#item.total_price = item.price * item.quantity
 
-            item.save(update_fields=["price", "quantity", "total_price"])
+            #DEBUG#item.save(update_fields=["price", "quantity", "total_price"])
+            item.save(update_fields=["price", "quantity"])
 
         # RESERVE STOCK (SAFE)
         for item in cart_items:

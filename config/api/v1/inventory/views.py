@@ -1,4 +1,6 @@
 from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -8,8 +10,14 @@ from rest_framework import status
 from core.permissions import IsStaffUser
 from apps.inventory.services import set_stock, adjust_stock
 from apps.inventory.models import InventoryLog
-from .serializers import StockUpdateSerializer, BulkStockUpdateSerializer
-
+from core.filters import InventoryLogFilter
+from core.pagination import LogPagination
+from .serializers import (
+    StockQuantityUpdateSerializer, 
+    AdjustStockQuantitySerializer,
+    BulkStockQuantityUpdateSerializer,
+    InventoryLogReadSerializer,
+)
 
 
 class SetStockAPIView(APIView):
@@ -19,7 +27,7 @@ class SetStockAPIView(APIView):
     permission_classes = [IsStaffUser]
 
     def post(self, request):
-        serializer = StockUpdateSerializer(data=request.data)
+        serializer = StockQuantityUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         set_stock(
@@ -39,9 +47,12 @@ class AdjustStockAPIView(APIView):
     permission_classes = [IsStaffUser]
 
     def post(self, request):
-        variant_id = request.data.get("variant_id")
-        quantity = int(request.data.get("quantity"))
-        action = request.data.get("action")  # INCREASE / DECREASE
+        serializer = AdjustStockQuantitySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        variant_id = serializer.validated_data["variant_id"]
+        quantity = serializer.validated_data["quantity"]
+        action = serializer.validated_data["action"]  # INCREASE / DECREASE
 
         adjust_stock(
             variant_id=variant_id,
@@ -57,11 +68,11 @@ class BulkStockUpdateAPIView(APIView):
     """
     Update the stock quantity of more than one product variant
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsStaffUser]
 
     @transaction.atomic
     def post(self, request):
-        serializer = BulkStockUpdateSerializer(data=request.data)
+        serializer = BulkStockQuantityUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         for item in serializer.validated_data["updates"]:
@@ -72,11 +83,47 @@ class BulkStockUpdateAPIView(APIView):
             )
 
         return Response({"detail": "Bulk stock quantity update successful"})
-    
+
 
 class InventoryLogAPIView(ListAPIView):
     """
     Audit the InventoryLogs (READ-ONLY)
+    Supports filtering, search, ordering, pagination
     """
     permission_classes = [IsAdminUser]
-    queryset = InventoryLog.objects.all().order_by("-created_at")
+    serializer_class = InventoryLogReadSerializer
+
+    queryset = InventoryLog.objects.select_related(
+        "product_variant",
+        "performed_by"
+    ).all()
+
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter,
+        OrderingFilter,
+    ]
+
+    filterset_fields = [
+        "action",
+        "product_variant",
+        "performed_by",
+    ]
+
+    filterset_class = InventoryLogFilter
+    pagination_class = LogPagination
+
+    search_fields = [
+        "note",
+        "product_variant__name",
+        "performed_by__email",
+    ]
+
+    ordering_fields = [
+        "created_at",
+        "quantity",
+        "new_stock",
+        "previous_stock",
+    ]
+
+    ordering = ["-created_at"]

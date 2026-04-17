@@ -1,8 +1,11 @@
 from django.db import models
+from django.conf import settings
+import secrets
 from uuid import uuid4
+
 from apps.orders.models import Order
 from core.utils import get_price_decimal_field
-import secrets
+
 
 def generate_reference(provider: str):
     if not provider:
@@ -31,7 +34,12 @@ class Payment(models.Model):
     )
 
     amount = get_price_decimal_field() # snapshot of the order price
-    currency = models.CharField(max_length=10, default="NGN")
+    
+    currency = models.CharField(
+        max_length=3,
+        choices=settings.CURRENCY_CHOICES,
+        default='USD',
+    )
 
     status = models.CharField(
         max_length=20,
@@ -71,7 +79,15 @@ class Payment(models.Model):
                 name="unique_initialized_payment_per_order"
             )
         ]
-    
+
+        indexes = [
+            models.Index(fields=["reference_id"]),
+            models.Index(fields=["transaction_id"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+
     def save(self, *args, **kwargs):
         if not self.reference_id:
             self.reference_id = generate_reference(self.provider)
