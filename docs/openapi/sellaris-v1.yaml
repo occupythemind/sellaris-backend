@@ -1,0 +1,2758 @@
+openapi: 3.0.3
+info:
+  title: Sellaris E-Commerce Backend Engine API
+  version: 1.0.0
+  description: |
+    Production-oriented API documentation for the current Sellaris backend implementation.
+
+    Important integration notes:
+
+    - The same API is exposed under both `/api/v1` and `/v1`.
+    - Paths below are documented with the explicit `/api/v1/...` prefix.
+    - Authentication is currently Django session-based, not bearer-token based.
+    - Guest ownership is implemented through Django sessions for carts, wishlists, orders, and payment history.
+    - Staff/admin access is determined by `user.is_staff`.
+
+    This spec is designed to be readable by both engineers and AI systems generating UI or typed clients.
+servers:
+  - url: /
+    description: Root application host. Use the `/api/v1/...` paths below.
+tags:
+  - name: Auth
+    description: Registration, login, verification, OAuth, and account lifecycle.
+  - name: Catalog
+    description: Categories, products, variants, specifications, and media.
+  - name: Cart
+    description: Session-aware carts and cart items for guests and authenticated users.
+  - name: Wishlist
+    description: Private and public wishlists, with guest session ownership support.
+  - name: Orders
+    description: Checkout order creation and order history retrieval.
+  - name: Payments
+    description: Payment initialization and owned payment record listing.
+  - name: Inventory
+    description: Staff stock management and inventory audit endpoints.
+  - name: Webhooks
+    description: Payment provider webhook receivers.
+paths:
+  /api/v1/users/register:
+    post:
+      tags: [Auth]
+      operationId: registerUser
+      summary: Register a new user
+      description: |
+        Creates a new user, queues an email verification task, and transfers any guest-owned cart,
+        wishlist, or pending order into the newly created account.
+
+        Browser clients should preserve the current session before calling this endpoint so ownership
+        transfer can happen correctly.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: shopper@example.com
+              password: StrongPass123
+              first_name: Ada
+              last_name: Lovelace
+      responses:
+        '201':
+          description: User created and verification email queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: User created. Check your email to verify.
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/login:
+    post:
+      tags: [Auth]
+      operationId: loginUser
+      summary: Log in with email and password
+      description: |
+        Authenticates the user and creates a Django session. If the user has a guest cart,
+        guest wishlists, or guest pending orders, ownership is transferred into the authenticated account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: shopper@example.com
+              password: StrongPass123
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Login successful
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Invalid credentials
+        '403':
+          description: Email exists but is not yet verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: "Email not verified, use: https://frontend.example/verify"
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/verify-email:
+    get:
+      tags: [Auth]
+      operationId: verifyEmail
+      summary: Verify a user email address
+      description: |
+        Confirms the email verification token. The token is built on Django's password reset token
+        mechanism, and the project config sets the effective timeout to 24 hours.
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: URL-safe base64 encoded user ID.
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+          description: Email verification token.
+      responses:
+        '200':
+          description: Email verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Email verified
+        '400':
+          description: Invalid link or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                invalidLink:
+                  value:
+                    detail: Invalid link
+                invalidToken:
+                  value:
+                    detail: Invalid or expired token
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/resend-email-verify:
+    post:
+      tags: [Auth]
+      operationId: resendVerificationEmail
+      summary: Resend verification email
+      description: |
+        Safe response behavior: the endpoint returns the same success message whether or not
+        the account exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: shopper@example.com
+      responses:
+        '200':
+          description: Generic success response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: If account exists, email sent
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/account-info:
+    get:
+      tags: [Auth]
+      operationId: getAccountInfo
+      summary: Get the current user's account profile
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Current authenticated user profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+  /api/v1/users/manage-account:
+    patch:
+      tags: [Auth]
+      operationId: updateAccount
+      summary: Update the current user's account profile
+      security:
+        - SessionCookie: []
+      description: |
+        Session-authenticated endpoint. Browser clients should include a CSRF token on this request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdateRequest'
+            example:
+              first_name: Ada
+              last_name: Lovelace
+              username: ada-l
+      responses:
+        '200':
+          description: Account updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Account updated successfully
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+  /api/v1/users/delete:
+    post:
+      tags: [Auth]
+      operationId: deleteAccount
+      summary: Soft-delete the current account
+      security:
+        - SessionCookie: []
+      description: |
+        Marks the account inactive, logs the user out, and schedules permanent deletion 30 days later.
+        If the user logs back in before final deletion, the account is reactivated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+            example:
+              password: StrongPass123
+      responses:
+        '202':
+          description: Deletion scheduled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Account deactivated. It will be permanently deleted in 30 days.
+        '400':
+          description: Invalid password or deletion already scheduled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                invalidPassword:
+                  value:
+                    detail: Invalid password
+                alreadyScheduled:
+                  value:
+                    detail: Deletion already scheduled
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+  /api/v1/users/google:
+    post:
+      tags: [Auth]
+      operationId: loginWithGoogle
+      summary: Authenticate with Google OAuth token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+            example:
+              token: google-id-token
+      responses:
+        '200':
+          description: OAuth login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Login successful
+        '400':
+          description: Missing or invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                missingToken:
+                  value:
+                    detail: Token required
+                invalidToken:
+                  value:
+                    detail: Invalid token
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/facebook:
+    post:
+      tags: [Auth]
+      operationId: loginWithFacebook
+      summary: Authenticate with Facebook OAuth token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+            example:
+              token: facebook-access-token
+      responses:
+        '200':
+          description: OAuth login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Login successful
+        '400':
+          description: Missing token, invalid token, or missing email permission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                missingToken:
+                  value:
+                    detail: Token required
+                invalidToken:
+                  value:
+                    detail: Invalid token
+                missingEmail:
+                  value:
+                    detail: Email permission required
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/users/apple:
+    post:
+      tags: [Auth]
+      operationId: loginWithApple
+      summary: Authenticate with Apple identity token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+            example:
+              token: apple-identity-token
+      responses:
+        '200':
+          description: OAuth login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Login successful
+        '400':
+          description: Missing token, invalid token, or Apple omitted email and no existing provider link was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                missingToken:
+                  value:
+                    detail: Token required
+                invalidToken:
+                  value:
+                    detail: Invalid token
+                missingEmail:
+                  value:
+                    detail: Email not provided by Apple
+        '429':
+          description: Rate limit exceeded.
+  /api/v1/products/categories:
+    get:
+      tags: [Catalog]
+      operationId: listCategories
+      summary: List categories
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          description: Paginated category list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoryList'
+    post:
+      tags: [Catalog]
+      operationId: createCategory
+      summary: Create a category
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryWrite'
+      responses:
+        '201':
+          description: Category created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/products/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Catalog]
+      operationId: getCategory
+      summary: Retrieve a category
+      responses:
+        '200':
+          description: Category details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Catalog]
+      operationId: updateCategory
+      summary: Replace a category
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryWrite'
+      responses:
+        '200':
+          description: Category updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Catalog]
+      operationId: patchCategory
+      summary: Partially update a category
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryPatch'
+      responses:
+        '200':
+          description: Category updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Catalog]
+      operationId: deleteCategory
+      summary: Delete a category
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      responses:
+        '204':
+          description: Category deleted.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/products/products:
+    get:
+      tags: [Catalog]
+      operationId: listProducts
+      summary: List products
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: category
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: brand
+          schema:
+            type: string
+        - in: query
+          name: currency
+          schema:
+            $ref: '#/components/schemas/Currency'
+      responses:
+        '200':
+          description: Paginated product list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+    post:
+      tags: [Catalog]
+      operationId: createProduct
+      summary: Create a product
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductWrite'
+      responses:
+        '201':
+          description: Product created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/products/products/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [Catalog]
+      operationId: getProduct
+      summary: Retrieve a product
+      responses:
+        '200':
+          description: Product details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Catalog]
+      operationId: updateProduct
+      summary: Replace a product
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductWrite'
+      responses:
+        '200':
+          description: Product updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Catalog]
+      operationId: patchProduct
+      summary: Partially update a product
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductPatch'
+      responses:
+        '200':
+          description: Product updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Catalog]
+      operationId: deleteProduct
+      summary: Delete a product
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      responses:
+        '204':
+          description: Product deleted.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/products/product-variants:
+    get:
+      tags: [Catalog]
+      operationId: listProductVariants
+      summary: List product variants
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: product
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: color
+          schema:
+            type: string
+        - in: query
+          name: storage_size
+          schema:
+            type: string
+        - in: query
+          name: currency
+          schema:
+            $ref: '#/components/schemas/Currency'
+      responses:
+        '200':
+          description: Paginated product variant list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductVariantList'
+    post:
+      tags: [Catalog]
+      operationId: createProductVariant
+      summary: Create a product variant
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductVariantWrite'
+      responses:
+        '201':
+          description: Product variant created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariantWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/products/product-variants/{variantId}:
+    parameters:
+      - $ref: '#/components/parameters/VariantId'
+    get:
+      tags: [Catalog]
+      operationId: getProductVariant
+      summary: Retrieve a product variant
+      responses:
+        '200':
+          description: Product variant details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariantRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Catalog]
+      operationId: updateProductVariant
+      summary: Replace a product variant
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductVariantWrite'
+      responses:
+        '200':
+          description: Product variant updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariantWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Catalog]
+      operationId: patchProductVariant
+      summary: Partially update a product variant
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductVariantPatch'
+      responses:
+        '200':
+          description: Product variant updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariantWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Catalog]
+      operationId: deleteProductVariant
+      summary: Delete a product variant
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      responses:
+        '204':
+          description: Product variant deleted.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/products/specifications:
+    get:
+      tags: [Catalog]
+      operationId: listSpecifications
+      summary: List specifications
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - in: query
+          name: product_variant
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated specification list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSpecificationList'
+    post:
+      tags: [Catalog]
+      operationId: createSpecification
+      summary: Create a specification
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpecificationWrite'
+      responses:
+        '201':
+          description: Specification created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificationWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/products/specifications/{specificationId}:
+    parameters:
+      - $ref: '#/components/parameters/SpecificationId'
+    get:
+      tags: [Catalog]
+      operationId: getSpecification
+      summary: Retrieve a specification
+      responses:
+        '200':
+          description: Specification details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificationRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Catalog]
+      operationId: updateSpecification
+      summary: Replace a specification
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpecificationWrite'
+      responses:
+        '200':
+          description: Specification updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificationWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Catalog]
+      operationId: patchSpecification
+      summary: Partially update a specification
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpecificationPatch'
+      responses:
+        '200':
+          description: Specification updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecificationWrite'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Catalog]
+      operationId: deleteSpecification
+      summary: Delete a specification
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      responses:
+        '204':
+          description: Specification deleted.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/products/product-images:
+    get:
+      tags: [Catalog]
+      operationId: listProductImages
+      summary: List product images
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - in: query
+          name: product_variant
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: is_main
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Paginated product image list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductImageList'
+    post:
+      tags: [Catalog]
+      operationId: createProductImage
+      summary: Upload a product image
+      security:
+        - SessionCookie: []
+      description: |
+        Staff-only write endpoint.
+
+        Use `multipart/form-data`. The backend validates extensions and image size, and then triggers
+        asynchronous post-processing after the transaction commits.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductImageWriteMultipart'
+      responses:
+        '201':
+          description: Product image created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImageRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/products/product-images/{imageId}:
+    parameters:
+      - $ref: '#/components/parameters/ImageId'
+    get:
+      tags: [Catalog]
+      operationId: getProductImage
+      summary: Retrieve a product image record
+      responses:
+        '200':
+          description: Product image details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImageRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Catalog]
+      operationId: updateProductImage
+      summary: Replace a product image record
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint. Use `multipart/form-data`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductImageWriteMultipart'
+      responses:
+        '200':
+          description: Product image updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImageRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Catalog]
+      operationId: patchProductImage
+      summary: Partially update a product image record
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint. Use `multipart/form-data`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductImagePatchMultipart'
+      responses:
+        '200':
+          description: Product image updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImageRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Catalog]
+      operationId: deleteProductImage
+      summary: Delete a product image record
+      security:
+        - SessionCookie: []
+      description: Staff-only write endpoint.
+      responses:
+        '204':
+          description: Product image deleted.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/carts/carts:
+    get:
+      tags: [Cart]
+      operationId: getCurrentCart
+      summary: Get the current cart
+      description: |
+        Returns the active cart for the current authenticated user or guest session.
+        If no cart exists yet, the backend creates one.
+      responses:
+        '200':
+          description: Current cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartRead'
+  /api/v1/carts/carts/{cartId}:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    get:
+      tags: [Cart]
+      operationId: getCurrentCartByAlias
+      summary: Get the current cart using the router detail path
+      description: |
+        The detail route does not expose arbitrary cart access. The current implementation ignores the
+        supplied `cartId` and still returns the caller's active cart.
+      responses:
+        '200':
+          description: Current cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartRead'
+    delete:
+      tags: [Cart]
+      operationId: clearCurrentCart
+      summary: Delete the current cart
+      description: |
+        Deletes the active cart for the current authenticated user or guest session.
+      responses:
+        '204':
+          description: Cart deleted.
+  /api/v1/carts/cart-items:
+    get:
+      tags: [Cart]
+      operationId: listCartItems
+      summary: List cart items for the current cart
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: product_variant
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: product_variant__product
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paginated cart item list for the current cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCartItemList'
+    post:
+      tags: [Cart]
+      operationId: addCartItem
+      summary: Add an item to the current cart
+      description: |
+        Public/session-aware endpoint.
+
+        If the same product variant already exists in the current cart, quantity is incremented instead of
+        creating a duplicate row. The item price is snapshot from the current product variant price.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemWrite'
+            example:
+              product_variant: 6c6d7030-fd91-4d30-8a74-457b5f670001
+              quantity: 2
+      responses:
+        '201':
+          description: Cart item created or merged into an existing row.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/carts/cart-items/{cartItemId}:
+    parameters:
+      - $ref: '#/components/parameters/CartItemId'
+    get:
+      tags: [Cart]
+      operationId: getCartItem
+      summary: Retrieve a cart item in the current cart
+      responses:
+        '200':
+          description: Cart item details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Cart]
+      operationId: updateCartItem
+      summary: Replace a cart item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemWrite'
+      responses:
+        '200':
+          description: Cart item updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Cart]
+      operationId: patchCartItem
+      summary: Partially update a cart item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemPatch'
+      responses:
+        '200':
+          description: Cart item updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItemRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Cart]
+      operationId: deleteCartItem
+      summary: Remove a cart item
+      responses:
+        '204':
+          description: Cart item deleted.
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/wishlists/wishlists:
+    get:
+      tags: [Wishlist]
+      operationId: listWishlists
+      summary: List wishlists
+      description: |
+        Returns wishlists based on the current ownership context.
+
+        - Authenticated user: own wishlists
+        - Guest: own session wishlists
+        - `from=others`: other users' public wishlists
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: is_public
+          schema:
+            type: boolean
+        - in: query
+          name: from
+          schema:
+            type: string
+            enum: [others]
+      responses:
+        '200':
+          description: Paginated wishlist list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWishlistList'
+    post:
+      tags: [Wishlist]
+      operationId: createWishlist
+      summary: Create a wishlist
+      description: |
+        Public/session-aware endpoint. The created wishlist belongs to the current user or guest session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistWrite'
+            example:
+              name: Birthday ideas
+              is_public: false
+      responses:
+        '201':
+          description: Wishlist created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/wishlists/wishlists/{wishlistId}:
+    parameters:
+      - $ref: '#/components/parameters/WishlistId'
+    get:
+      tags: [Wishlist]
+      operationId: getWishlist
+      summary: Retrieve a wishlist
+      description: |
+        Public wishlists can be retrieved for sharing. Private wishlists can only be retrieved by their owner.
+      responses:
+        '200':
+          description: Wishlist details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    put:
+      tags: [Wishlist]
+      operationId: updateWishlist
+      summary: Replace a wishlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistWrite'
+      responses:
+        '200':
+          description: Wishlist updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags: [Wishlist]
+      operationId: patchWishlist
+      summary: Partially update a wishlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistPatch'
+      responses:
+        '200':
+          description: Wishlist updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Wishlist]
+      operationId: deleteWishlist
+      summary: Delete a wishlist
+      responses:
+        '204':
+          description: Wishlist deleted.
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/wishlists/wishlist-items:
+    get:
+      tags: [Wishlist]
+      operationId: listWishlistItems
+      summary: List wishlist items owned by the current caller
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: wishlist
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: product_variant
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paginated wishlist item list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWishlistItemList'
+    post:
+      tags: [Wishlist]
+      operationId: addWishlistItem
+      summary: Add a product variant to a wishlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistItemWrite'
+            example:
+              wishlist: e9fc6c32-02a5-4272-9b4d-cae9a3f6a111
+              product_variant: 6c6d7030-fd91-4d30-8a74-457b5f670001
+      responses:
+        '201':
+          description: Wishlist item created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistItemRead'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/wishlists/wishlist-items/{wishlistItemId}:
+    parameters:
+      - $ref: '#/components/parameters/WishlistItemId'
+    get:
+      tags: [Wishlist]
+      operationId: getWishlistItem
+      summary: Retrieve a wishlist item
+      responses:
+        '200':
+          description: Wishlist item details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistItemRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags: [Wishlist]
+      operationId: deleteWishlistItem
+      summary: Delete a wishlist item
+      responses:
+        '204':
+          description: Wishlist item deleted.
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/orders/checkout:
+    get:
+      tags: [Orders]
+      operationId: listOrders
+      summary: List current caller's orders
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - in: query
+          name: currency
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated order list for the current user or guest session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderList'
+    post:
+      tags: [Orders]
+      operationId: createCheckoutOrder
+      summary: Create an order from the current cart
+      description: |
+        Public/session-aware checkout endpoint.
+
+        During order creation the backend:
+
+        - revalidates cart item prices
+        - revalidates stock availability
+        - auto-adjusts quantities downward if needed
+        - reserves stock for valid items
+        - creates the order and snapshot order items
+
+        The response from this create endpoint is intentionally compact and may include a `changes`
+        block describing price or stock corrections applied during checkout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCheckoutRequest'
+            example:
+              email: shopper@example.com
+              phone_number: '+2348012345678'
+      responses:
+        '201':
+          description: Order created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCheckoutCreateResponse'
+        '400':
+          description: Cart empty or all items out of stock.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DetailResponse'
+                  - $ref: '#/components/schemas/OutOfStockResponse'
+  /api/v1/orders/checkout/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      summary: Retrieve an owned order
+      responses:
+        '200':
+          description: Order details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderRead'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/payments:
+    get:
+      tags: [Payments]
+      operationId: listPaymentRecords
+      summary: List payment records for the current caller
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/PaymentStatus'
+        - in: query
+          name: provider
+          schema:
+            type: string
+            enum: [flutterwave, paystack]
+        - in: query
+          name: currency
+          schema:
+            $ref: '#/components/schemas/Currency'
+      responses:
+        '200':
+          description: Paginated owned payment records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentRecordList'
+  /api/v1/payments/initialize:
+    post:
+      tags: [Payments]
+      operationId: initializePayment
+      summary: Initialize a payment for an order
+      description: |
+        Public/session-aware endpoint, but ownership is enforced against the target order.
+
+        Payment initialization is idempotent for an existing `initialized` payment on the same order.
+        If one exists, the existing payment link and reference are returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitializeRequest'
+            example:
+              order_id: 27962659-a0e8-47cb-a18d-dfd6776a9b11
+              provider: flutterwave
+      responses:
+        '200':
+          description: Payment link created or reused.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PaymentInitializeResponse'
+                  - $ref: '#/components/schemas/PaymentReuseResponse'
+        '400':
+          description: Missing parameters or unsupported provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                missingOrderId:
+                  value:
+                    detail: "missing parameter: order_id"
+                missingProvider:
+                  value:
+                    detail: "missing parameter: provider"
+                unsupportedProvider:
+                  value:
+                    detail: Supported payment providers are 'flutterwave' or 'paystack'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+  /api/v1/inventories/set-stock-quantity:
+    post:
+      tags: [Inventory]
+      operationId: setStockQuantity
+      summary: Set stock quantity for a single variant
+      security:
+        - SessionCookie: []
+      description: Staff-only inventory mutation endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockQuantityUpdateRequest'
+            example:
+              variant_id: 6c6d7030-fd91-4d30-8a74-457b5f670001
+              quantity: 18
+      responses:
+        '200':
+          description: Stock quantity updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Stock quantity updated
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/inventories/adjust-stock-quantity:
+    post:
+      tags: [Inventory]
+      operationId: adjustStockQuantity
+      summary: Increase or decrease stock quantity for a single variant
+      security:
+        - SessionCookie: []
+      description: Staff-only inventory mutation endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustStockQuantityRequest'
+            example:
+              variant_id: 6c6d7030-fd91-4d30-8a74-457b5f670001
+              quantity: 5
+              action: INCREASE
+      responses:
+        '200':
+          description: Stock quantity adjusted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Stock quantity adjusted
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/inventories/bulk-stock-quantity-update:
+    post:
+      tags: [Inventory]
+      operationId: bulkSetStockQuantity
+      summary: Bulk set stock quantities for multiple variants
+      security:
+        - SessionCookie: []
+      description: Staff-only inventory mutation endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkStockQuantityUpdateRequest'
+      responses:
+        '200':
+          description: Bulk stock quantity update successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              example:
+                detail: Bulk stock quantity update successful
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /api/v1/inventories/inventory-log:
+    get:
+      tags: [Inventory]
+      operationId: listInventoryLogs
+      summary: List inventory logs
+      security:
+        - SessionCookie: []
+      description: |
+        Staff/admin audit endpoint. The current code uses DRF `IsAdminUser`, which effectively means
+        `is_staff=true`.
+
+        Important caveat: the current serializer implementation in code is only a placeholder. The schema
+        below documents the intended inventory log record shape based on the model and filters.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Ordering'
+        - in: query
+          name: action
+          schema:
+            $ref: '#/components/schemas/InventoryAction'
+        - in: query
+          name: product_variant
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: performed_by
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: created_at__gte
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: created_at__lte
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Paginated inventory log list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInventoryLogList'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+  /payments/webhook/flutterwave/:
+    post:
+      tags: [Webhooks]
+      operationId: flutterwaveWebhook
+      summary: Receive a Flutterwave webhook
+      description: |
+        Internal provider endpoint.
+
+        The backend expects the `verif-hash` header to match the configured Flutterwave secret hash,
+        logs the raw payload, then queues asynchronous verification.
+
+        Verify the final deployed route before handing it to the provider, because the root include
+        registration should be confirmed in the running project.
+      responses:
+        '200':
+          description: Webhook accepted and queued.
+        '400':
+          description: Missing signature header.
+        '403':
+          description: Invalid signature.
+  /payments/webhook/paystack/:
+    post:
+      tags: [Webhooks]
+      operationId: paystackWebhook
+      summary: Receive a Paystack webhook
+      description: |
+        Internal provider endpoint.
+
+        The backend validates the `x-paystack-signature` header against the raw request body,
+        logs the payload, then queues asynchronous verification.
+
+        Verify the final deployed route before handing it to the provider, because the root include
+        registration should be confirmed in the running project.
+      responses:
+        '200':
+          description: Webhook accepted and queued.
+        '403':
+          description: Invalid signature.
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: |
+        Django session cookie set by `POST /api/v1/users/login` or OAuth login endpoints.
+        Browser clients should also send a CSRF token on unsafe requests.
+  parameters:
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+      description: Pagination page number.
+    PageSize:
+      in: query
+      name: page_size
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+      description: |
+        Requested page size. Most endpoints cap at 50. Inventory logs cap at 200.
+    Search:
+      in: query
+      name: search
+      schema:
+        type: string
+      description: Search term for endpoints that support DRF search backends.
+    Ordering:
+      in: query
+      name: ordering
+      schema:
+        type: string
+      description: DRF ordering parameter, for example `name` or `-created_at`.
+    CategoryId:
+      in: path
+      name: categoryId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ProductId:
+      in: path
+      name: productId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VariantId:
+      in: path
+      name: variantId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SpecificationId:
+      in: path
+      name: specificationId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ImageId:
+      in: path
+      name: imageId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CartId:
+      in: path
+      name: cartId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CartItemId:
+      in: path
+      name: cartItemId
+      required: true
+      schema:
+        type: integer
+    WishlistId:
+      in: path
+      name: wishlistId
+      required: true
+      schema:
+        type: string
+        format: uuid
+    WishlistItemId:
+      in: path
+      name: wishlistItemId
+      required: true
+      schema:
+        type: integer
+    OrderId:
+      in: path
+      name: orderId
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    ErrorResponse:
+      description: Validation or business-rule error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedResponse:
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DetailResponse'
+          example:
+            detail: Authentication credentials were not provided.
+    ForbiddenResponse:
+      description: Authenticated but not permitted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DetailResponse'
+          example:
+            detail: You do not have permission to perform this action.
+    NotFoundResponse:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DetailResponse'
+          example:
+            detail: Not found.
+  schemas:
+    Currency:
+      type: string
+      enum: [USD, EUR, GBP, CAD, JPY, NGN, GHS, KES, ZAR, TZS, UGX, RWF, XAF, XOF]
+    OrderStatus:
+      type: string
+      enum: [pending, paid, shipped, delivered, cancelled, failed]
+    PaymentStatus:
+      type: string
+      enum: [initialized, pending, success, failed]
+    InventoryAction:
+      type: string
+      enum: [SET, INCREASE, DECREASE, RESERVE, RELEASE, CONFIRM]
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    DetailResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      description: Generic DRF validation or business-rule error payload.
+    RegisterRequest:
+      type: object
+      required: [email, password, first_name, last_name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        first_name:
+          type: string
+        last_name:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    OAuthTokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    AccountInfo:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        username:
+          type: string
+        date_joined:
+          type: string
+          format: date-time
+    AccountUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+          format: password
+    DeleteAccountRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          format: password
+    CategoryRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CategoryWrite:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+    CategoryPatch:
+      type: object
+      properties:
+        name:
+          type: string
+    ProductRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        category:
+          allOf:
+            - $ref: '#/components/schemas/CategoryRead'
+          nullable: true
+        base_price:
+          type: string
+          example: '1499.99'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        slug:
+          type: string
+    ProductWrite:
+      type: object
+      required: [name, brand, base_price]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          minLength: 2
+        brand:
+          type: string
+        description:
+          type: string
+          maxLength: 400
+        category:
+          type: string
+          format: uuid
+          nullable: true
+        base_price:
+          type: string
+          example: '1499.99'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        slug:
+          type: string
+    ProductPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+        brand:
+          type: string
+        description:
+          type: string
+          maxLength: 400
+        category:
+          type: string
+          format: uuid
+          nullable: true
+        base_price:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        slug:
+          type: string
+    ProductVariantRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        product:
+          $ref: '#/components/schemas/ProductRead'
+        sku_code:
+          type: string
+        color:
+          type: string
+        storage_size:
+          type: string
+        price:
+          type: string
+          example: '1599.99'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        stock_quantity:
+          type: integer
+          minimum: 0
+        reserved_stock:
+          type: integer
+          minimum: 0
+    ProductVariantWrite:
+      type: object
+      required: [product, color, price]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        product:
+          type: string
+          format: uuid
+        sku_code:
+          type: string
+        color:
+          type: string
+        storage_size:
+          type: string
+        price:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        stock_quantity:
+          type: integer
+          minimum: 0
+        reserved_stock:
+          type: integer
+          minimum: 0
+    ProductVariantPatch:
+      type: object
+      properties:
+        product:
+          type: string
+          format: uuid
+        sku_code:
+          type: string
+        color:
+          type: string
+        storage_size:
+          type: string
+        price:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        stock_quantity:
+          type: integer
+          minimum: 0
+        reserved_stock:
+          type: integer
+          minimum: 0
+    SpecificationRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        value:
+          type: string
+    SpecificationWrite:
+      type: object
+      required: [product_variant, name, value]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        product_variant:
+          type: string
+          format: uuid
+        name:
+          type: string
+        value:
+          type: string
+    SpecificationPatch:
+      type: object
+      properties:
+        product_variant:
+          type: string
+          format: uuid
+        name:
+          type: string
+        value:
+          type: string
+    ProductImageRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        image:
+          type: string
+          format: uri
+        is_main:
+          type: boolean
+    ProductImageWriteMultipart:
+      type: object
+      required: [product_variant, image]
+      properties:
+        product_variant:
+          type: string
+          format: uuid
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+    ProductImagePatchMultipart:
+      type: object
+      properties:
+        product_variant:
+          type: string
+          format: uuid
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+    CartItemWrite:
+      type: object
+      required: [product_variant, quantity]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        cart:
+          type: string
+          format: uuid
+          readOnly: true
+        product_variant:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+    CartItemPatch:
+      type: object
+      properties:
+        product_variant:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+    CartItemRead:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_variant:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        price:
+          type: string
+          example: '1599.99'
+        total_price:
+          type: string
+          example: '3199.98'
+        created_at:
+          type: string
+          format: date-time
+    CartRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          type: string
+          format: uuid
+          nullable: true
+        session_id:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItemRead'
+        full_total_price:
+          type: string
+          example: '3199.98'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    WishlistWrite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+        is_public:
+          type: boolean
+      required: [name]
+    WishlistPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        is_public:
+          type: boolean
+    WishlistItemWrite:
+      type: object
+      required: [wishlist, product_variant]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        wishlist:
+          type: string
+          format: uuid
+        product_variant:
+          type: string
+          format: uuid
+    WishlistItemRead:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_variant:
+          type: string
+          format: uuid
+        added_at:
+          type: string
+          format: date-time
+    WishlistRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        is_public:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WishlistItemRead'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OrderCheckoutRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+    CheckoutChangeSummary:
+      type: object
+      properties:
+        price_changes:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              old_price:
+                type: string
+              new_price:
+                type: string
+        stock_changes:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              requested:
+                type: integer
+              available:
+                type: integer
+    OrderCheckoutCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        changes:
+          $ref: '#/components/schemas/CheckoutChangeSummary'
+    OutOfStockResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: OUT_OF_STOCK
+        message:
+          type: string
+        stock_changes:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              requested:
+                type: integer
+              available:
+                type: integer
+    OrderItemRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_variant:
+          type: string
+          format: uuid
+          nullable: true
+        product_name:
+          type: string
+        price:
+          type: string
+        quantity:
+          type: integer
+        total_price:
+          type: string
+    OrderRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        total_amount:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemRead'
+    PaymentInitializeRequest:
+      type: object
+      required: [order_id, provider]
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          enum: [flutterwave, paystack]
+    PaymentInitializeResponse:
+      type: object
+      properties:
+        payment_link:
+          type: string
+          format: uri
+        reference_id:
+          type: string
+    PaymentReuseResponse:
+      type: object
+      properties:
+        payment_link:
+          type: string
+          format: uri
+        tx_ref:
+          type: string
+        message:
+          type: string
+          example: Reusing existing payment
+    PaymentRecordRead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        provider:
+          type: string
+        reference_id:
+          type: string
+        transaction_id:
+          type: string
+          nullable: true
+        payment_link:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+    StockQuantityUpdateRequest:
+      type: object
+      required: [variant_id, quantity]
+      properties:
+        variant_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+    AdjustStockQuantityRequest:
+      type: object
+      required: [variant_id, quantity, action]
+      properties:
+        variant_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+        action:
+          type: string
+          enum: [INCREASE, DECREASE]
+    BulkStockQuantityUpdateRequest:
+      type: object
+      required: [updates]
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockQuantityUpdateRequest'
+    InventoryLog:
+      type: object
+      properties:
+        product_variant:
+          type: string
+          format: uuid
+        action:
+          $ref: '#/components/schemas/InventoryAction'
+        quantity:
+          type: integer
+        previous_stock:
+          type: integer
+        new_stock:
+          type: integer
+        performed_by:
+          type: string
+          format: uuid
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    PaginatedCategoryList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/CategoryRead'
+    PaginatedProductList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductRead'
+    PaginatedProductVariantList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductVariantRead'
+    PaginatedSpecificationList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/SpecificationRead'
+    PaginatedProductImageList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductImageRead'
+    PaginatedCartItemList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/CartItemRead'
+    PaginatedWishlistList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/WishlistRead'
+    PaginatedWishlistItemList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/WishlistItemRead'
+    PaginatedOrderList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderRead'
+    PaginatedPaymentRecordList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/PaymentRecordRead'
+    PaginatedInventoryLogList:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedBase'
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/InventoryLog'
+    PaginatedBase:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
