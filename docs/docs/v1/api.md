@@ -1,10 +1,10 @@
-# Sellaris API Guide
+# How to use the api?
 
 The canonical machine-readable contract for this version is the [OpenAPI specification](../../openapi/sellaris-v1.yaml).
 
 This page is the human-readable companion to that file. It explains how the API is organized, what is public, and which endpoints are staff-protected.
 
-## Base paths
+## Staff protected endpoints
 
 Supported API prefixes:
 
