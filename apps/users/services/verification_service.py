@@ -8,11 +8,11 @@ from apps.users.tokens import email_verification_token
 from .email_factory import get_email_service
 
 
-def send_verification_email(user):
+def send_verification_email(user, request_origin):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
 
-    verify_url = f"{settings.EMAIL_VERIFY_URL}?uid={uid}&token={token}"
+    verify_url = f"{request_origin}{settings.VERIFY_EMAIL_PATH}?uid={uid}&token={token}"
 
     if settings.DEBUG:
         html_content = render_to_string(

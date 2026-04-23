@@ -95,7 +95,8 @@ class PaymentInitializeAPIView(APIView):
         # CALL GATEWAY
         payment_link = payment_service.initialize_payment(
             payment=payment,
-            customer_email=order.email
+            customer_email=order.email,
+            request_origin=request.META.get('HTTP_ORIGIN'),
         )
 
         logger.info(f"Payment initialized: {payment.reference_id}")

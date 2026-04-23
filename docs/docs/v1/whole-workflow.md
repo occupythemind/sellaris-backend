@@ -1,4 +1,4 @@
-# How Sellaris Works
+# System Workflow
 
 This document explains the actual business flow implemented in the codebase, including the timing rules that matter for production integration.
 
@@ -266,3 +266,11 @@ A frontend or AI-generated UI needs this workflow detail to avoid wrong assumpti
 - ownership is session-based until login
 - order and payment history are private to the current owner
 - staff inventory APIs should never be exposed in shopper UIs
+
+## Related documents
+
+- [Overview](./intro.md)
+- [Getting started](./getting-started.md)
+- [Authentication and access control](./authentication.md)
+- [API guide](./api.md)
+- [FAQ](./faq.md)

@@ -55,7 +55,7 @@ class RegisterAPIView(APIView):
         user = serializer.save()
 
         # Verify user's email
-        send_verification_email_task.delay(user.id)
+        send_verification_email_task.delay(user.id, request.META.get('HTTP_ORIGIN'))
 
         # Transfer guest data
         transfer_guest_data_to_user(request, user)
@@ -142,7 +142,7 @@ class ResendVerificationAPIView(APIView):
         user = User.objects.filter(email=email).first()
 
         if user and not user.is_verified:
-            send_verification_email_task.delay(user.id)
+            send_verification_email_task.delay(user.id, request.META.get('HTTP_ORIGIN'))
 
         return Response({"message": "If account exists, email sent"})
 

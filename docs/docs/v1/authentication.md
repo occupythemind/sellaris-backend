@@ -13,6 +13,8 @@ What that means in practice:
 
 This is not a JWT or bearer-token API at the moment.
 
+For the broader endpoint map, see the [API guide](./api.md).
+
 ## Browser client requirements
 
 If you are building a SPA or server-rendered frontend:
@@ -150,3 +152,10 @@ When a guest becomes an authenticated user, the backend:
 - transfers pending guest orders to the user
 
 This is one of the project’s most important UX features and should be preserved in any future auth redesign.
+
+## Related documents
+
+- [Overview](./intro.md)
+- [Getting started](./getting-started.md)
+- [API guide](./api.md)
+- [System workflow](./whole-workflow.md)

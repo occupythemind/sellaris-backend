@@ -1,10 +1,8 @@
 # Sellaris API Guide
 
-The canonical machine-readable API contract is:
+The canonical machine-readable contract for this version is the [OpenAPI specification](../../openapi/sellaris-v1.yaml).
 
-- `docs/openapi/sellaris-v1.yaml`
-
-This page is the readable companion to that file. It explains how the API is organized, what is public, and which endpoints are staff or admin protected.
+This page is the human-readable companion to that file. It explains how the API is organized, what is public, and which endpoints are staff-protected.
 
 ## Base paths
 
@@ -29,6 +27,8 @@ For browser clients:
 - keep cookies enabled
 - send CSRF tokens on unsafe requests
 - do not treat this API as a stateless bearer-token API
+
+See [Authentication and access control](./authentication.md) for the full session model and role behavior.
 
 ## Access matrix
 
@@ -154,8 +154,8 @@ The payment list is ownership-scoped. Users only see payment records for their o
 
 Configured provider webhook views live outside the versioned prefix:
 
-- intended Flutterwave webhook route: `/payments/webhook/flutterwave/`
-- intended Paystack webhook route: `/payments/webhook/paystack/`
+- intended Flutterwave webhook route: `/payments/webhook/flutterwave`
+- intended Paystack webhook route: `/payments/webhook/paystack`
 
 Because the root include in `config/urls.py` is registered without a trailing slash, verify the resolved deployed path before giving it to a provider.
 
@@ -193,7 +193,7 @@ Common list query parameters:
 
 ## Why this OpenAPI file is useful for AI agents
 
-Another AI system can use `sellaris-v1.yaml` to:
+Another AI system can use the [OpenAPI specification](../../openapi/sellaris-v1.yaml) to:
 
 - infer exact request shapes
 - generate form schemas
@@ -201,3 +201,11 @@ Another AI system can use `sellaris-v1.yaml` to:
 - identify resource ownership rules
 - understand which endpoints need staff access
 - scaffold admin dashboards separately from shopper UI
+
+## Related documents
+
+- [Overview](./intro.md)
+- [Getting started](./getting-started.md)
+- [Authentication and access control](./authentication.md)
+- [System workflow](./whole-workflow.md)
+- [FAQ](./faq.md)

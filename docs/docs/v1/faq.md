@@ -111,10 +111,10 @@ Those belong in an admin or staff interface.
 
 Use:
 
-1. `docs/openapi/sellaris-v1.yaml`
-2. `docs/docs/v1/api.md`
-3. `docs/docs/v1/authentication.md`
-4. `docs/docs/v1/whole-workflow.md`
+1. [OpenAPI specification](../../openapi/sellaris-v1.yaml)
+2. [API guide](./api.md)
+3. [Authentication and access control](./authentication.md)
+4. [System workflow](./whole-workflow.md)
 
 That combination gives the agent:
 
@@ -133,3 +133,11 @@ Yes, the docs follow the current URL registration structure, including repeated 
 - `/api/v1/wishlists/wishlists`
 
 Those are intentional in this documentation because they reflect the current router setup, not a prettier hypothetical API.
+
+## Related documents
+
+- [Overview](./intro.md)
+- [Getting started](./getting-started.md)
+- [API guide](./api.md)
+- [Authentication and access control](./authentication.md)
+- [System workflow](./whole-workflow.md)

@@ -33,21 +33,23 @@ SECRET_KEY = env('SECRET_KEY')
 
 # Flutterwave Payment Integration Credentials
 FLW_SECRET_KEY = env("FLW_SECRET_KEY")
-FLW_SECRET_HASH=env("FLW_SECRET_HASH")
+FLW_SECRET_HASH = env("FLW_SECRET_HASH")
 FLW_BASE_URL = env("FLW_BASE_URL")
 
 # PAYSTACK Payment Integration Credentials
-PST_SECRET_KEY=env("PST_SECRET_KEY")
-
-# Use this to form redirect URLs & webhooks URLs
-FRONTEND_BASE_URL=env("FRONTEND_BASE_URL")
-BACKEND_BASE_URL=env("BACKEND_BASE_URL")
-PAYMENT_REDIRECT_URL = f"{FRONTEND_BASE_URL}{env('PAYMENT_REDIRECT_PATH')}"
-EMAIL_VERIFY_URL = f"{FRONTEND_BASE_URL}{env("VERIFY_EMAIL_PATH")}"
+PST_SECRET_KEY = env("PST_SECRET_KEY")
 
 ALLOWED_HOSTS = []
 
+# Allow cookies to be sent in cross-site requests
+SESSION_COOKIE_SAMESITE = 'None' 
+SESSION_COOKIE_SECURE = True  # Required when SameSite is 'None'
+
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF settings often need to match for the frontend to work
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 
 # Email Config
 EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")

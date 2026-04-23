@@ -10,6 +10,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5500",  # Common port for VS Code Live Server
+    "http://127.0.0.1:5500",
+]
+
+# IMPORTANT: This must be False if you want JavaScript to read the cookie
+# If True, JS cannot see the cookie, and your X-CSRFToken header will be empty
+CSRF_COOKIE_HTTPONLY = False 
+
 INSTALLED_APPS += ['rest_framework',]
 
 # Local storage

@@ -1,23 +1,25 @@
 # Getting Started
 
+This page is the quickest path to running the backend locally and validating the core API flows.
+
 ## Runtime stack
 
-- Python / Django backend
+- Django application server
 - PostgreSQL database
 - Redis broker
 - Celery workers
 - Celery Beat scheduler
-- Optional storage and email providers in production
+- Optional email and storage providers in production
 
-## Local development
+## Start the local environment
 
-The repository is already wired for Docker Compose development.
+The repository is already configured for Docker Compose development:
 
 ```bash
 docker compose --env-file .env -f docker/docker-compose.yml up --build
 ```
 
-The development stack starts:
+The local stack starts:
 
 - `web` on port `8000`
 - `db` with PostgreSQL 17
@@ -26,51 +28,50 @@ The development stack starts:
 - `celery_emails`
 - `celery_beat`
 
-## Required environment categories
+## Environment configuration
 
-The settings require more than just a secret key and database URL. At minimum, configure values for:
+At minimum, the application expects configuration in these categories:
 
 - Django core: `SECRET_KEY`, `DEBUG`, `DATABASE_URL`
-- frontend/backend URLs: `FRONTEND_BASE_URL`, `BACKEND_BASE_URL`
-- payment redirect and verification paths: `PAYMENT_REDIRECT_PATH`, `VERIFY_EMAIL_PATH`
+- frontend and backend URLs: `FRONTEND_BASE_URL`, `BACKEND_BASE_URL`
+- payment redirects and verification paths: `PAYMENT_REDIRECT_PATH`, `VERIFY_EMAIL_PATH`
 - payment providers: `FLW_SECRET_KEY`, `FLW_SECRET_HASH`, `FLW_BASE_URL`, `PST_SECRET_KEY`
-- email: `EMAIL_PROVIDER`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`
-- OAuth: `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `APPLE_CLIENT_ID`
+- email delivery: `EMAIL_PROVIDER`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`
+- OAuth providers: `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `APPLE_CLIENT_ID`
 
-Production also expects:
+Production deployments also expect:
 
 - `ALLOWED_HOSTS`
 - `CORS_ALLOWED_ORIGINS`
-- `AWS_*` storage variables for media/static files
+- `AWS_*` storage variables for static and media files
 - Cloudinary credentials for image processing
 
-## Versioning and path conventions
+## Request conventions
 
 - Public API prefixes: `/api/v1` and `/v1`
 - Router-generated resource paths use `trailing_slash=False`
-- In practice, documented endpoints should be called without a trailing slash
+- Endpoint examples in this documentation intentionally omit trailing slashes
 
-One thing to watch carefully:
+Some grouped routes repeat a resource segment, for example `/api/v1/products/products`. That is expected and reflects the current router structure.
 
-- some grouped URLs have repeated path segments such as `/api/v1/products/products`
-- this is not a documentation typo; it comes from the current include structure
+## Client behavior requirements
 
-## Session-based clients
+Sellaris is built for session-aware clients:
 
-Sellaris is designed to work well with browser clients:
+- guests receive a session-backed cart and wishlist
+- login and registration transfer guest-owned data into the authenticated account
+- account, order, and payment reads depend on the active session cookie
 
-- guests get a session-backed cart and wishlist
-- login upgrades guest-owned data into the authenticated account
-- subsequent account/order/payment requests rely on the session cookie
+For browser clients:
 
-If you are building a SPA, configure:
+- send requests with credentials enabled
+- include CSRF protection on unsafe requests
 
-- `credentials: 'include'` on fetch/XHR
-- CSRF handling for unsafe requests
+See [Authentication and access control](./authentication.md) for the full session model.
 
-## Useful first tests
+## Recommended smoke tests
 
-After booting the stack, validate these flows first:
+After the local stack is running, validate these flows first:
 
 1. `GET /api/v1/products/products`
 2. `POST /api/v1/carts/cart-items`
@@ -78,13 +79,20 @@ After booting the stack, validate these flows first:
 4. `POST /api/v1/payments/initialize`
 5. `POST /api/v1/users/register`
 
-## Core scheduled behaviors
+## Scheduled behavior to be aware of
 
-Celery Beat is important to the business workflow:
+Celery Beat supports several lifecycle rules that affect integrations:
 
 - guest carts older than 14 days are cleaned up daily
 - guest wishlists older than 30 days are cleaned up daily
-- reserved stock is intended to be released for stale pending orders every 5 minutes
+- stale pending order reservations are intended to be released every 5 minutes
 - soft-deleted accounts are permanently deleted 30 days later
 
-Those lifecycle rules are explained in detail in `whole-workflow.md`.
+See [System workflow](./whole-workflow.md) for the detailed behavior and current caveats.
+
+## Next reads
+
+- [API guide](./api.md)
+- [Authentication and access control](./authentication.md)
+- [System workflow](./whole-workflow.md)
+- [OpenAPI specification](../../openapi/sellaris-v1.yaml)
