@@ -45,3 +45,17 @@ def batch_delete(queryset, batch_size=1000):
             break
 
         queryset.model.objects.filter(id__in=ids).delete()
+
+
+def generate_dynamic_url(request, path=''):
+    '''
+    Automatically build a dynamic URL using the `request` object scheme, 
+    `validated host header`, and the `path` (you can leave empty)\n\n
+    Path must be in this manner (if passed): `/path/to/anything`
+    '''
+    # Securely get the host
+    host = request.get_host()
+
+    # Build URL dynamically
+    dynamic_url = f"{request.scheme}://{host}{path}"
+    return dynamic_url

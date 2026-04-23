@@ -8,25 +8,25 @@ from apps.users.tokens import email_verification_token
 from .email_factory import get_email_service
 
 
-def send_verification_email(user, request_origin):
+def send_verification_email(user, verify_url):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
 
-    verify_url = f"{request_origin}{settings.VERIFY_EMAIL_PATH}?uid={uid}&token={token}"
+    verify_email_url = f"{verify_url}?uid={uid}&token={token}"
 
     if settings.DEBUG:
         html_content = render_to_string(
             "emails/verify_email_dev.html",
-            {"verify_url": verify_url}
+            {"verify_url": verify_email_url}
         )
     else:
         html_content = render_to_string(
             "emails/verify_email_prod.html",
-            {"verify_url": verify_url}
+            {"verify_url": verify_email_url}
         )
 
     subject = "Verify your email"
-    body = f"Click to verify your email: {verify_url}" # fallback
+    body = f"Click to verify your email: {verify_email_url}" # fallback
 
     email_service = get_email_service()
     email_service.send_email(user.email, subject, body, html_content)

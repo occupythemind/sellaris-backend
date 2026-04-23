@@ -7,7 +7,7 @@ logger = logging.getLogger("payments")
 class FlutterwaveService:
 
     @staticmethod
-    def initialize_payment(payment, customer_email, request_origin):
+    def initialize_payment(payment, customer_email, payment_redirect):
         url = f"{settings.FLW_BASE_URL}/payments"
 
         headers = {
@@ -20,7 +20,7 @@ class FlutterwaveService:
             "amount": str(payment.amount),
             "currency": payment.currency,
             # For the user's browser (frontend), not webhook URL
-            "redirect_url": request_origin + settings.PAYMENT_REDIRECT_PATH,
+            "redirect_url": payment_redirect,
             "customer": {
                 "email": customer_email
             },

@@ -10,13 +10,13 @@ User = get_user_model()
 
 
 @shared_task(bind=True, max_retries=3, queue="emails")
-def send_verification_email_task(self, user_id, request_origin):
+def send_verification_email_task(self, user_id, verify_url):
     try:
         user = User.objects.get(id=user_id)
 
         logger.info(f"Sending verification email to {user.email}")
 
-        send_verification_email(user, request_origin)
+        send_verification_email(user, verify_url)
     except Exception as exc:
         logger.error(f"Email sending failed for user {user_id}: {exc}")
         raise self.retry(exc=exc, countdown=60)

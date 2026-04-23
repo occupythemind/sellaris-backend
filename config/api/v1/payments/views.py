@@ -14,6 +14,7 @@ import logging
 from apps.orders.models import Order
 from apps.payments.models import Payment, PaymentStatus
 from apps.payments.services.factory import get_payment_service
+from core.utils import generate_dynamic_url
 from .serializers import PaymentRecordReadSerializer
 
 
@@ -96,7 +97,7 @@ class PaymentInitializeAPIView(APIView):
         payment_link = payment_service.initialize_payment(
             payment=payment,
             customer_email=order.email,
-            request_origin=request.META.get('HTTP_ORIGIN'),
+            payment_redirect=generate_dynamic_url(request, settings.PAYMENT_REDIRECT_PATH),
         )
 
         logger.info(f"Payment initialized: {payment.reference_id}")

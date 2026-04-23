@@ -6,7 +6,7 @@ from django.conf import settings
 class PaystackService:
 
     @staticmethod
-    def initialize_payment(payment, customer_email, request_origin):
+    def initialize_payment(payment, customer_email, payment_redirect):
         url = "https://api.paystack.co/transaction/initialize"
 
         headers = {
@@ -18,7 +18,7 @@ class PaystackService:
             "email": customer_email,
             "amount": int(Decimal(payment.amount) * 100),  # Paystack uses kobo, not decimal (like Flutterwave)
             "reference": payment.reference_id,
-            "callback_url": request_origin + settings.PAYMENT_REDIRECT_PATH,
+            "callback_url": payment_redirect,
             "currency": payment.currency,
         }
 

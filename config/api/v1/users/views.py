@@ -22,6 +22,7 @@ from apps.users.oauth.providers.google import GoogleOAuthService
 from apps.users.oauth.providers.facebook import FacebookOAuthService
 from apps.users.oauth.providers.apple import AppleOAuthService
 from apps.users.oauth.oauth_service import OAuthService
+from core.utils import generate_dynamic_url
 from tasks.cleanup_data import delete_user_account
 from tasks.send_email import send_verification_email_task
 from .serializers import (
@@ -55,7 +56,7 @@ class RegisterAPIView(APIView):
         user = serializer.save()
 
         # Verify user's email
-        send_verification_email_task.delay(user.id, request.META.get('HTTP_ORIGIN'))
+        send_verification_email_task.delay(user.id, generate_dynamic_url(request, settings.VERIFY_EMAIL_PATH))
 
         # Transfer guest data
         transfer_guest_data_to_user(request, user)
@@ -142,7 +143,7 @@ class ResendVerificationAPIView(APIView):
         user = User.objects.filter(email=email).first()
 
         if user and not user.is_verified:
-            send_verification_email_task.delay(user.id, request.META.get('HTTP_ORIGIN'))
+            send_verification_email_task.delay(user.id, generate_dynamic_url(request, settings.VERIFY_EMAIL_PATH))
 
         return Response({"message": "If account exists, email sent"})
 
