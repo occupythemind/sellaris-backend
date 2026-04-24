@@ -1,6 +1,7 @@
 from django.utils.text import slugify
 from django.db.models import DecimalField
 from django.core.validators import MinValueValidator
+from django.conf import settings
 from decimal import Decimal
 
 
@@ -47,15 +48,23 @@ def batch_delete(queryset, batch_size=1000):
         queryset.model.objects.filter(id__in=ids).delete()
 
 
-def generate_dynamic_url(request, path=''):
+def generate_dynamic_url(request, path='', frontend_base_url=settings.FRONTEND_BASE_URL):
     '''
-    Automatically build a dynamic URL using the `request` object scheme, 
+    Automatically build a dynamic URL using the `FRONTEND_BASE_URL` set in the 
+    environment variable and the `path` (you can leave empty).
+
+    If that was not set, then it fallsback to using `request` object scheme, 
     `validated host header`, and the `path` (you can leave empty)\n\n
+
     Path must be in this manner (if passed): `/path/to/anything`
     '''
+
+    if frontend_base_url:
+        dynamic_url = frontend_base_url + path
+        return dynamic_url
+    
     # Securely get the host
     host = request.get_host()
 
-    # Build URL dynamically
     dynamic_url = f"{request.scheme}://{host}{path}"
     return dynamic_url
