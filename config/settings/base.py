@@ -41,6 +41,8 @@ PST_SECRET_KEY = env("PST_SECRET_KEY")
 
 ALLOWED_HOSTS = []
 
+FRONTEND_BASE_URL = env('FRONTEND_BASE_URL')
+
 # Allow cookies to be sent in cross-site requests
 SESSION_COOKIE_SAMESITE = 'None' 
 SESSION_COOKIE_SECURE = True  # Required when SameSite is 'None'

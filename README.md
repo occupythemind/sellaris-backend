@@ -35,13 +35,20 @@ Prerequisites
 - Docker Compose
 
 ## 🔧 Run the Project
-```
-docker compose --env-file .env -f docker/docker-compose.yml up --build
+```sh
+docker build -t sellaris:latest -f Dockerfile .
+
+# On Development
+docker compose --env-file .env.local -f docker-compose.yml up
+
+# On Production 
+docker compose --env-file .env -f docker-compose.prod.yml up
 ```
 
 ## 🛠️ Environment Variables
 
-Create a .env file in the root directory and configure:
+### On Development
+Create a .env.local file in the root directory and configure:
 ```
 DEBUG=True
 SECRET_KEY=your-secret-key
@@ -56,6 +63,9 @@ DB_PORT=5432
 # For Django
 DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:DB_PORT/DB_NAME
 ```
+
+### On Production
+Create a .env file in the root directory and configure:
 
 ## 📂 Project Structure
 ```

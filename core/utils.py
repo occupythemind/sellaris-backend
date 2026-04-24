@@ -48,7 +48,7 @@ def batch_delete(queryset, batch_size=1000):
         queryset.model.objects.filter(id__in=ids).delete()
 
 
-def generate_dynamic_url(request, path='', frontend_base_url=settings.FRONTEND_BASE_URL):
+def generate_dynamic_url(request, path='', frontend_base_url=None):
     '''
     Automatically build a dynamic URL using the `FRONTEND_BASE_URL` set in the 
     environment variable and the `path` (you can leave empty).
@@ -58,6 +58,9 @@ def generate_dynamic_url(request, path='', frontend_base_url=settings.FRONTEND_B
 
     Path must be in this manner (if passed): `/path/to/anything`
     '''
+
+    if frontend_base_url is None:
+        frontend_base_url = settings.FRONTEND_BASE_URL
 
     if frontend_base_url:
         dynamic_url = frontend_base_url + path

@@ -1,21 +1,19 @@
 services:
   web:
-    build:
-      context: ..              # Go up one level to the project root
-      dockerfile: docker/Dockerfile
+    image: sellaris:latest
     volumes:
-      - ..:/app
+      - .:/app              # Changed from .. to .
       - ./logs:/app/logs
     ports:
       - "8000:8000"
     env_file:
-      - ../.env
+      - .env.local                # Changed from ../.env.local to .env.local
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.dev
     command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       redis:
-        condition: service_healthy  # Wait for Redis to be Healthy before starting the web service
+        condition: service_healthy
       db:
         condition: service_started
     networks:
@@ -28,7 +26,6 @@ services:
     restart: unless-stopped
     volumes:
       - redis-data:/data
-    # The Healthcheck configuration for testing if this service is up and running
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 1s
@@ -50,47 +47,41 @@ services:
       - app-network
 
   celery_default:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: sellaris:latest
     command: celery -A config worker -Q default -l info
     volumes:
-      - ..:/app
+      - .:/app              # Changed from .. to .
     env_file:
-      - ../.env
+      - .env.local                # Changed from ../.env.local to .env.local
     depends_on:
       redis:
-        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
+        condition: service_healthy
     networks:
       - app-network
 
   celery_emails:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: sellaris:latest
     command: celery -A config worker -Q emails -l info
     volumes:
-      - ..:/app
+      - .:/app              # Changed from .. to .
     env_file:
-      - ../.env
+      - .env.local                # Changed from ../.env.local to .env.local
     depends_on:
       redis:
-        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
+        condition: service_healthy
     networks:
       - app-network
 
   celery_beat:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: sellaris:latest
     command: celery -A config beat -l info
     volumes:
-      - ..:/app
+      - .:/app              # Changed from .. to .
     env_file:
-      - ../.env
+      - .env.local                # Changed from ../.env.local to .env.local
     depends_on:
       redis:
-        condition: service_healthy  # Wait for Redis to be Healthy before starting this service
+        condition: service_healthy
     networks:
       - app-network
 
