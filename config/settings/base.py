@@ -39,9 +39,12 @@ FLW_BASE_URL = env("FLW_BASE_URL")
 # PAYSTACK Payment Integration Credentials
 PST_SECRET_KEY = env("PST_SECRET_KEY")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1', 
+    'localhost'
+]
 
-FRONTEND_BASE_URL = env('FRONTEND_BASE_URL')
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default='')
 
 # Allow cookies to be sent in cross-site requests
 SESSION_COOKIE_SAMESITE = 'None' 
@@ -204,8 +207,8 @@ DATA_UPLOAD_MAX_FILES = 20
 
 
 # Celery config
-
-CELERY_BROKER_URL = 'redis://redis:6379/0'
+REDIS_PASSWORD = env('REDIS_PASSWORD')
+CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

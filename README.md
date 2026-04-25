@@ -42,6 +42,7 @@ docker build -t sellaris:latest -f Dockerfile .
 docker compose --env-file .env.local -f docker-compose.yml up
 
 # On Production 
+echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf
 docker compose --env-file .env -f docker-compose.prod.yml up
 ```
 
