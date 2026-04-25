@@ -43,6 +43,18 @@ cloudinary.config(
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
+# Celery config
+REDIS_PASSWORD = env('REDIS_PASSWORD')
+CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@redis:6379/0'
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# To allow request from Cross-SIte origin (as needed for APIs)
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None' # Allow cookies to be sent in cross-site requests
+SESSION_COOKIE_SECURE = True  # Required when SameSite is 'None'
+
 # We stream to STROUT, then we handle logs from the hosting platform
 # Ensure only console is used
 LOGGING["loggers"]["payments"]["handlers"] = ["console"]

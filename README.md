@@ -40,10 +40,12 @@ docker build -t sellaris:latest -f Dockerfile .
 
 # On Development
 docker compose --env-file .env.local -f docker-compose.yml up
+docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py migrate
 
 # On Production 
 echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf
 docker compose --env-file .env -f docker-compose.prod.yml up
+docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manage.py migrate
 ```
 
 ## 🛠️ Environment Variables
@@ -67,6 +69,60 @@ DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:DB_PORT/DB_NAME
 
 ### On Production
 Create a .env file in the root directory and configure:
+
+## For HTTPS
+
+### Update Nginx:
+In the `nginx/nginx.conf`, replace `api-sellaris.gleeze.com ` with your domain name (eg. example.com).
+```conf
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name yourdomain.com www.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://web:8000;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+### Get your Certificate:
+Before this, make sure:
+- Your domain points to your server IP
+- Ports 80 and 443 are open
+
+```
+docker compose run --rm certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  -d yourdomain.com \
+  -d www.yourdomain.com \
+  --email your@email.com \
+  --agree-tos \
+  --no-eff-email
+```
 
 ## 📂 Project Structure
 ```

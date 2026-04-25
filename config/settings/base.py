@@ -46,16 +46,6 @@ ALLOWED_HOSTS = [
 
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default='')
 
-# Allow cookies to be sent in cross-site requests
-SESSION_COOKIE_SAMESITE = 'None' 
-SESSION_COOKIE_SECURE = True  # Required when SameSite is 'None'
-
-CORS_ALLOW_CREDENTIALS = True
-
-# CSRF settings often need to match for the frontend to work
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True
-
 # Email Config
 EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")
 
@@ -80,6 +70,12 @@ APPLE_CLIENT_ID = env("APPLE_CLIENT_ID")
 
 # Token config
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 hours
+
+# CSRF / CORs config
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CSRF_COOKIE_HTTPONLY = False  # Allows JS to read the cookie
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 
@@ -112,7 +108,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # cors
+    'corsheaders.middleware.CorsMiddleware', # cors, leave this on top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -207,8 +203,6 @@ DATA_UPLOAD_MAX_FILES = 20
 
 
 # Celery config
-REDIS_PASSWORD = env('REDIS_PASSWORD')
-CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

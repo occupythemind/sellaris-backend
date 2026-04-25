@@ -15,13 +15,19 @@ CSRF_TRUSTED_ORIGINS = [
 
 # IMPORTANT: This must be False if you want JavaScript to read the cookie
 # If True, JS cannot see the cookie, and your X-CSRFToken header will be empty
-CSRF_COOKIE_HTTPONLY = False 
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 
 INSTALLED_APPS += ['rest_framework',]
 
 # Local storage
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Celery config
+CELERY_BROKER_URL = f'redis://redis:6379/0'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
