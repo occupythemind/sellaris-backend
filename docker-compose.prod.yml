@@ -95,13 +95,19 @@ services:
       - "80:80" # HTTP
       - "443:443"   # HTTPS
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/app.conf:/etc/nginx/templates/app.conf.template
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
       - webroot:/var/www/certbot
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}  # Add the DOMAIN_NAME environment variable here
-    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    command: >
+      /bin/sh -c "
+      envsubst '$$DOMAIN_NAME'
+      < /etc/nginx/templates/app.conf.template
+      > /etc/nginx/conf.d/default.conf
+      && nginx -g 'daemon off;'"
     depends_on:
       web:
         condition: service_healthy
