@@ -25,8 +25,18 @@ if [ -z "$DOMAIN_NAME" ] || [ -z "$DOMAIN_MAIL" ]; then
   exit 1
 fi
 
+INCLUDE_WWW=$(grep -E "^INCLUDE_WWW=" .env | cut -d '=' -f 2 | tr -d '"'\'' ' | tr '[:upper:]' '[:lower:]')
+
 DOMAIN=$DOMAIN_NAME
 EMAIL=$DOMAIN_MAIL
+
+DOMAIN_ARGS="-d $DOMAIN"
+if [ "$INCLUDE_WWW" = "true" ] || [ "$INCLUDE_WWW" = "1" ] || [ "$INCLUDE_WWW" = "yes" ]; then
+  DOMAIN_ARGS="-d $DOMAIN -d www.$DOMAIN"
+  echo "ℹ️ Including www.$DOMAIN in the certificate request."
+else
+  echo "ℹ️ Requesting certificate for $DOMAIN only (set INCLUDE_WWW=true in .env to include www)."
+fi
 
 echo "### Creating dummy certificate for $DOMAIN ..."
 # Run a temporary certbot container to generate a dummy certificate
@@ -50,14 +60,18 @@ docker compose -f $COMPOSE_FILE run --rm --entrypoint sh certbot -c "\
   rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf"
 
 echo "### Requesting Let's Encrypt certificate for $DOMAIN ..."
-docker compose -f $COMPOSE_FILE run --rm --entrypoint sh certbot -c "\
+if ! docker compose -f $COMPOSE_FILE run --rm --entrypoint sh certbot -c "\
   certbot certonly --webroot -w /var/www/certbot \
-    -d $DOMAIN -d www.$DOMAIN \
+    $DOMAIN_ARGS \
     --email $EMAIL \
     --rsa-key-size 4096 \
     --agree-tos \
     --force-renewal \
-    --no-eff-email"
+    --no-eff-email"; then
+  echo "❌ ERROR: Certbot failed to obtain the certificate."
+  echo "Please check the Certbot output above to see why it failed."
+  exit 1
+fi
 
 echo "### Starting all services and reloading nginx ..."
 docker compose -f $COMPOSE_FILE up -d
