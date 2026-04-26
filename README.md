@@ -29,92 +29,98 @@ Database: PostgreSQL
 Containerization: Docker
 Async (planned): Celery + Redis
 
-## ⚙️ Getting Started
-Prerequisites
+## ⚙️ Getting Started & Installation
+
+### Prerequisites
 - Docker
 - Docker Compose
 
-## 🔧 Run the Project
-```sh
-docker build -t sellaris:latest -f Dockerfile .
+### 1. Environment Setup
 
-# On Development
-docker compose --env-file .env.local -f docker-compose.yml up
-docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py migrate
-
-# On Production 
-echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf
-docker compose --env-file .env -f docker-compose.prod.yml up
-docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manage.py migrate
-```
-
-## 🛠️ Environment Variables
-
-### On Development
-Create a .env.local file in the root directory and configure:
-```
+**For Development:**
+Create a `.env.local` file in the root directory. Development uses the local Docker `db` service.
+```env
 DEBUG=True
-SECRET_KEY=your-secret-key
+SECRET_KEY=your-secret-key-here
+DATABASE_URL=postgresql://ecommerce_user:yourpassword@db:5432/ecommerce_db
 
-# For docker
+# Docker database variables
 DB_NAME=ecommerce_db
 DB_USER=ecommerce_user
 DB_PASSWORD=yourpassword
 DB_HOST=db
 DB_PORT=5432
 
-# For Django
-DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@DB_HOST:DB_PORT/DB_NAME
+# Other integrations (Cloudinary, Payments, etc.)
 ```
 
-### On Production
-Create a .env file in the root directory and configure:
+**For Production:**
+Create a `.env` file in the root directory. Production requires an external database (e.g. Supabase, AWS RDS).
+```env
+DEBUG=False
+SECRET_KEY=your-production-secret-key
+DATABASE_URL=your-external-database-url
+ALLOWED_HOSTS=yourdomain.com,localhost,127.0.0.1
 
-## For HTTPS
-
-### Update Nginx:
-In the `nginx/nginx.conf`, replace `api-sellaris.gleeze.com ` with your domain name (eg. example.com).
-```conf
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name yourdomain.com www.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://web:8000;
-
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
+# Other integrations (Cloudinary, Payments, etc.)
 ```
 
-### Get your Certificate:
-Before this, make sure:
-- Your domain points to your server IP
-- Ports 80 and 443 are open
-
+### 2. Build the Docker Image
+First, build the Docker image used by the web and celery services:
+```sh
+docker build -t sellaris:latest -f Dockerfile .
 ```
-docker compose run --rm certbot certonly \
+
+### 3. Run the Project
+
+**Development Environment:**
+```sh
+# Start the containers in the background
+docker compose --env-file .env.local -f docker-compose.yml up -d
+
+# Run database migrations
+docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py migrate
+
+# Create an admin user (optional)
+docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py createsuperuser
+```
+The API will be available at `http://localhost:8000/`.
+
+**Production Environment:**
+```sh
+# Recommended for Redis performance in production
+echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf
+
+# Start the containers in the background
+docker compose --env-file .env -f docker-compose.prod.yml up -d
+
+# Run database migrations
+docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manage.py migrate
+
+# Collect static files
+docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manage.py collectstatic --no-input
+```
+The API will be served via Nginx at `http://localhost/` (or your configured domain).
+
+## 🔒 Enabling HTTPS
+
+This project uses dynamic Nginx configuration. You **do not** need to manually edit Nginx config files!
+
+### 1. Update your `.env` file
+Add your domain details to your production `.env` file:
+```env
+DOMAIN_NAME=yourdomain.com
+INCLUDE_WWW=true  # Optional: Set to true if you want to also support www.yourdomain.com
+```
+
+### 2. Get your SSL Certificate
+Before running this, make sure:
+- Your domain points to your server's IP address.
+- Ports `80` and `443` are open on your server firewall.
+
+Run Certbot to fetch the certificate:
+```sh
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
   -d yourdomain.com \
@@ -123,6 +129,14 @@ docker compose run --rm certbot certonly \
   --agree-tos \
   --no-eff-email
 ```
+*(Make sure to replace `yourdomain.com` and `your@email.com` in the command above with your actual details).*
+
+Once the certificate is generated, restart the stack so Nginx can pick it up:
+```sh
+docker compose -f docker-compose.prod.yml down
+docker compose --env-file .env -f docker-compose.prod.yml up -d
+```
+
 
 ## 📂 Project Structure
 ```

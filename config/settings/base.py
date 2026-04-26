@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'apps.wishlists',
 
     # 3rd party apps
+    'rest_framework',
     'storages',
     'django_celery_beat',
     'corsheaders',

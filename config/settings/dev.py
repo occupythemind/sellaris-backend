@@ -20,8 +20,6 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 
-INSTALLED_APPS += ['rest_framework',]
-
 # Local storage
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

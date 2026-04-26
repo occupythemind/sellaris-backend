@@ -58,3 +58,8 @@ SESSION_COOKIE_SECURE = True  # Required when SameSite is 'None'
 # We stream to STROUT, then we handle logs from the hosting platform
 # Ensure only console is used
 LOGGING["loggers"]["payments"]["handlers"] = ["console"]
+
+# Disable Browsable API in production
+REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = (
+    "rest_framework.renderers.JSONRenderer",
+)
