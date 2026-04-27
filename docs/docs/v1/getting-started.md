@@ -1,6 +1,6 @@
 # Getting Started
 
-This page is the quickest path to running the backend locally and validating the core API flows.
+This page is the fastest path to running the backend locally and validating the API shape that frontend clients will consume.
 
 ## Runtime stack
 
@@ -9,17 +9,70 @@ This page is the quickest path to running the backend locally and validating the
 - Redis broker
 - Celery workers
 - Celery Beat scheduler
-- Optional email and storage providers in production
+- Optional email and media providers in production
 
-## Start the local environment
+## Repository layout that matters for setup
 
-The repository is already configured for Docker Compose development:
+The current project layout uses root-level container files:
 
-```bash
-docker compose --env-file .env -f docker/docker-compose.yml up --build
+- `docker-compose.yml` for development
+- `docker-compose.prod.yml` for production
+- `Dockerfile` for the shared application image
+- `nginx/` for reverse-proxy and HTTPS configuration
+
+## Development setup
+
+### 1. Create a local environment file
+
+Development currently expects `.env.local` in the project root.
+
+At minimum, define:
+
+```env
+DEBUG=True
+SECRET_KEY=change-me
+
+DB_NAME=ecommerce_db
+DB_USER=ecommerce_user
+DB_PASSWORD=yourpassword
+DB_HOST=db
+DB_PORT=5432
+DATABASE_URL=postgresql://ecommerce_user:yourpassword@db:5432/ecommerce_db
+
+FRONTEND_BASE_URL=http://localhost:3000
+VERIFY_EMAIL_PATH=/verify-email
+PAYMENT_REDIRECT_PATH=/payment-return
+
+FLW_SECRET_KEY=...
+FLW_SECRET_HASH=...
+FLW_BASE_URL=https://api.flutterwave.com/v3
+PST_SECRET_KEY=...
+
+EMAIL_HOST=...
+EMAIL_PORT=587
+EMAIL_HOST_USER=...
+EMAIL_HOST_PASSWORD=...
+DEFAULT_FROM_EMAIL=...
+
+GOOGLE_CLIENT_ID=...
+FACEBOOK_APP_ID=...
+FACEBOOK_APP_SECRET=...
+APPLE_CLIENT_ID=...
 ```
 
-The local stack starts:
+### 2. Build the app image
+
+```bash
+docker build -t sellaris:latest -f Dockerfile .
+```
+
+### 3. Start the stack
+
+```bash
+docker compose --env-file .env.local -f docker-compose.yml up -d
+```
+
+The development stack starts:
 
 - `web` on port `8000`
 - `db` with PostgreSQL 17
@@ -28,23 +81,42 @@ The local stack starts:
 - `celery_emails`
 - `celery_beat`
 
-## Environment configuration
+### 4. Run migrations
 
-At minimum, the application expects configuration in these categories:
+```bash
+docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py migrate
+```
+
+### 5. Optional admin user
+
+```bash
+docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py createsuperuser
+```
+
+## Production setup highlights
+
+Production currently adds:
+
+- Daphne / ASGI app serving
+- secure Redis broker password
+- Nginx reverse proxy
+- Certbot renewal container
+- HTTPS proxy headers and secure cookie settings
+- `/health/` container health check
+
+Production expects `.env` in the project root, not inside a `docker/` folder.
+
+## Environment variables that matter most to integrations
+
+The codebase is especially sensitive to these groups of settings:
 
 - Django core: `SECRET_KEY`, `DEBUG`, `DATABASE_URL`
-- frontend and backend URLs: `FRONTEND_BASE_URL`, `BACKEND_BASE_URL`
-- payment redirects and verification paths: `PAYMENT_REDIRECT_PATH`, `VERIFY_EMAIL_PATH`
+- frontend origin and callbacks: `FRONTEND_BASE_URL`, `VERIFY_EMAIL_PATH`, `PAYMENT_REDIRECT_PATH`
 - payment providers: `FLW_SECRET_KEY`, `FLW_SECRET_HASH`, `FLW_BASE_URL`, `PST_SECRET_KEY`
+- auth/cookie security: `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`
 - email delivery: `EMAIL_PROVIDER`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`
 - OAuth providers: `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `APPLE_CLIENT_ID`
-
-Production deployments also expect:
-
-- `ALLOWED_HOSTS`
-- `CORS_ALLOWED_ORIGINS`
-- `AWS_*` storage variables for static and media files
-- Cloudinary credentials for image processing
+- production-only infra: `REDIS_PASSWORD`, `DOMAIN_NAME`, `DOMAIN_MAIL`, `AWS_*`, `CLOUDINARY_*`
 
 ## Request conventions
 
@@ -52,7 +124,13 @@ Production deployments also expect:
 - Router-generated resource paths use `trailing_slash=False`
 - Endpoint examples in this documentation intentionally omit trailing slashes
 
-Some grouped routes repeat a resource segment, for example `/api/v1/products/products`. That is expected and reflects the current router structure.
+Some grouped routes repeat a resource segment, for example:
+
+- `/api/v1/products/products`
+- `/api/v1/carts/cart-items`
+- `/api/v1/wishlists/wishlists`
+
+That is expected and reflects the current router structure.
 
 ## Client behavior requirements
 
@@ -65,9 +143,9 @@ Sellaris is built for session-aware clients:
 For browser clients:
 
 - send requests with credentials enabled
-- include CSRF protection on unsafe requests
+- include a CSRF token on unsafe requests that send cookies
 
-See [Authentication and access control](./authentication.md) for the full session model.
+The current source does not expose a dedicated CSRF bootstrap endpoint, so plan for standard Django CSRF handling in your frontend shell.
 
 ## Recommended smoke tests
 
@@ -78,6 +156,7 @@ After the local stack is running, validate these flows first:
 3. `POST /api/v1/orders/checkout`
 4. `POST /api/v1/payments/initialize`
 5. `POST /api/v1/users/register`
+6. `GET /health/`
 
 ## Scheduled behavior to be aware of
 
@@ -88,7 +167,7 @@ Celery Beat supports several lifecycle rules that affect integrations:
 - stale pending order reservations are intended to be released every 5 minutes
 - soft-deleted accounts are permanently deleted 30 days later
 
-See [System workflow](./whole-workflow.md) for the detailed behavior and current caveats.
+See [System workflow](./whole-workflow.md) for the detailed behavior and caveats.
 
 ## Next reads
 

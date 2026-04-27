@@ -1,77 +1,59 @@
-# Sellaris — Website Source
+# Sellaris Docs Site
 
-This is the static website for the Sellaris Django E-Commerce Engine.
+This folder contains the static documentation site for Sellaris.
 
-## File Structure
+## Source of truth
 
-```
-sellaris/
-├── index.html          ← Main HTML (markup only — no inline styles or scripts)
-│
+The docs UI now loads its content from the Markdown files under:
+
+- `docs/docs/v1/`
+
+The machine-readable API contract lives at:
+
+- `docs/openapi/sellaris-v1.yaml`
+
+That means the Markdown files and the OpenAPI file are the primary assets to update. The site simply renders them.
+
+## File structure
+
+```text
+docs/
+├── index.html
+├── README.md
+├── CNAME
 ├── css/
-│   ├── base.css        ← Design tokens, reset, typography, layout utilities, buttons
-│   ├── nav-footer.css  ← Navigation bar + footer styles
-│   ├── sections.css    ← All main section styles (hero, features, api, arch, etc.)
-│   └── docs.css        ← Documentation section styles
-│
 ├── js/
-│   ├── main.js         ← Sitewide JS (nav, mobile menu, scroll, copy buttons)
-│   └── docs.js         ← Docs section JS (markdown rendering, page switching)
-│
-├── assets/             ← (create this folder) Images, logo, favicon
-│   ├── logo.svg            ← Your Sellaris logo (30×30px, works on white bg)
-│   ├── logo-white.svg      ← Logo version for dark footer
-│   ├── favicon.svg         ← Browser tab icon
-│   └── favicon.png         ← Fallback favicon
-│
-└── README.md           ← This file
+├── openapi/
+│   └── sellaris-v1.yaml
+└── docs/
+    └── v1/
+        ├── intro.md
+        ├── getting-started.md
+        ├── authentication.md
+        ├── api.md
+        ├── whole-workflow.md
+        └── faq.md
 ```
 
-## Customisation Checklist
+## How the docs UI works
 
-Before publishing, complete these TODOs (each is marked in the code with a `TODO:` comment):
+- `index.html` defines the layout and sidebar
+- `js/docs.js` fetches the Markdown files from `docs/docs/v1/`
+- `marked.js` renders Markdown into HTML
+- `highlight.js` styles code blocks
 
-1. **Logo** — Replace the `<span class="logo-mark">S</span>` placeholder with your SVG logo
-   in `index.html` (nav logo and footer logo). Use 30×30px SVG.
-   Tools: [Figma](https://figma.com) | [Vectr](https://vectr.com) | [Iconify](https://iconify.design)
+## Publishing notes
 
-2. **Favicon** — Create an `assets/` folder, add your favicon files, and uncomment the
-   favicon `<link>` tags in the `<head>` of `index.html`.
-   Generator: [favicon.io](https://favicon.io) or [realfavicongenerator.net](https://realfavicongenerator.net)
+Before publishing publicly, make sure these are set correctly in `index.html`:
 
-3. **Canonical URL** — Replace `https://sellaris.dev` with your real deployed URL in
-   the `<link rel="canonical">` and `<meta property="og:url">` tags.
-
-4. **Social URLs** — In the footer section of `index.html`, replace the `href="#"` on
-   the Twitter and LinkedIn social icons with your actual profile URLs.
-
-5. **GitHub raw docs (once repo is public)** — Open `js/docs.js`, uncomment the
-   `GITHUB_RAW_BASE` block, and comment out the inline `DOCS` object. This makes
-   the docs section fetch live markdown from your `/docs` GitHub folder.
+- canonical URL
+- Open Graph URL
+- social profile links
+- favicon assets
 
 ## Deployment
 
-This is a plain static site — no build step required.
+This is a plain static site.
 
-**GitHub Pages (free):**
-1. Push this folder to a GitHub repo
-2. Settings → Pages → Deploy from branch → `main` / `root`
-
-**Netlify (free):**
-1. Drag the `sellaris/` folder onto [netlify.com/drop](https://netlify.com/drop)
-
-**Vercel:**
-```bash
-npx vercel --prod
-```
-
-## Dependencies (loaded via CDN)
-
-| Library        | Purpose                                      |
-|----------------|----------------------------------------------|
-| Feather Icons  | SVG icon set (nav, cards, footer, buttons)   |
-| Marked.js      | Renders markdown strings to HTML in the docs |
-| highlight.js   | Syntax highlighting in docs code blocks      |
-| Google Fonts   | Syne (display) + DM Mono (code) + Inter (body) |
-
-No npm, no build tool, no bundler needed.
+- GitHub Pages works well for it
+- Netlify and Vercel will also serve it without a build step

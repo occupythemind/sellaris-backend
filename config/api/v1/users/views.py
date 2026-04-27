@@ -87,8 +87,9 @@ class LoginAPIView(APIView):
 
         # Check if User is verified
         if not user.is_verified:
+            #send_verification_email_task.delay()
             return Response(
-                {"detail": f"Email not verified, use: {settings.EMAIL_VERIFY_URL}"},
+                {"detail": f"Email not verified"},
                 status=status.HTTP_403_FORBIDDEN
             )
         

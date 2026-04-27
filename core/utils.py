@@ -48,9 +48,9 @@ def batch_delete(queryset, batch_size=1000):
         queryset.model.objects.filter(id__in=ids).delete()
 
 
-def generate_dynamic_url(request, path='', frontend_base_url=None):
+def generate_dynamic_url(request, path='', FRONTEND_ORIGIN=None):
     '''
-    Automatically build a dynamic URL using the `FRONTEND_BASE_URL` set in the 
+    Automatically build a dynamic URL using the `FRONTEND_ORIGIN` set in the 
     environment variable and the `path` (you can leave empty).
 
     If that was not set, then it fallsback to using `request` object scheme, 
@@ -59,11 +59,11 @@ def generate_dynamic_url(request, path='', frontend_base_url=None):
     Path must be in this manner (if passed): `/path/to/anything`
     '''
 
-    if frontend_base_url is None:
-        frontend_base_url = settings.FRONTEND_BASE_URL
+    if FRONTEND_ORIGIN is None:
+        FRONTEND_ORIGIN = settings.FRONTEND_ORIGIN
 
-    if frontend_base_url:
-        dynamic_url = frontend_base_url + path
+    if FRONTEND_ORIGIN:
+        dynamic_url = FRONTEND_ORIGIN + path
         return dynamic_url
     
     # Securely get the host

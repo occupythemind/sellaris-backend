@@ -260,7 +260,7 @@
       <div class="section-header">
         <span class="section-label">REST API</span>
         <h2 id="api-heading">Clean endpoints. RESTful by design.</h2>
-        <p>All endpoints follow REST conventions and return JSON. Versioned at <code>/api/v1/</code> so breaking changes never surprise your frontend.</p>
+        <p>All endpoints return JSON and are versioned under <code>/api/v1</code> and <code>/v1</code>. Session auth, guest ownership, and staff-only routes are all documented explicitly.</p>
       </div>
 
       <div class="api-layout">
@@ -270,38 +270,38 @@
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-get">GET</span>
-            <span class="endpoint-path">/api/v1/products/</span>
-            <span class="endpoint-desc">Catalog</span>
+            <span class="endpoint-path">/api/v1/products/products</span>
+            <span class="endpoint-desc">Catalog list</span>
           </div>
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-post">POST</span>
-            <span class="endpoint-path">/api/v1/carts/</span>
-            <span class="endpoint-desc">Cart ops</span>
+            <span class="endpoint-path">/api/v1/carts/cart-items</span>
+            <span class="endpoint-desc">Add to cart</span>
           </div>
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-get">GET</span>
-            <span class="endpoint-path">/api/v1/wishlists/</span>
-            <span class="endpoint-desc">Wishlist</span>
+            <span class="endpoint-path">/api/v1/wishlists/wishlists</span>
+            <span class="endpoint-desc">Wishlists</span>
           </div>
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-post">POST</span>
-            <span class="endpoint-path">/api/v1/orders/</span>
-            <span class="endpoint-desc">Orders</span>
+            <span class="endpoint-path">/api/v1/orders/checkout</span>
+            <span class="endpoint-desc">Checkout orders</span>
           </div>
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-post">POST</span>
-            <span class="endpoint-path">/api/v1/payments/</span>
-            <span class="endpoint-desc">Payments</span>
+            <span class="endpoint-path">/api/v1/payments/initialize</span>
+            <span class="endpoint-desc">Initialize payment</span>
           </div>
 
           <div class="endpoint-item" role="listitem">
             <span class="method-badge method-post">POST</span>
-            <span class="endpoint-path">/api/v1/users/</span>
-            <span class="endpoint-desc">Auth</span>
+            <span class="endpoint-path">/api/v1/users/login</span>
+            <span class="endpoint-desc">Session auth</span>
           </div>
 
         </div>
@@ -313,34 +313,38 @@
               <div class="code-dots" aria-hidden="true">
                 <span></span><span></span><span></span>
               </div>
-              <span class="code-label">example — fetch products</span>
+              <span class="code-label">example — guest cart + checkout</span>
             </div>
             <div class="code-body">
-              <pre><span class="tok-dim">// Fetch the product catalog</span>
-<span class="tok-dim">// Replace with your deployed domain</span>
+              <pre><span class="tok-dim">// Guests can shop with a Django session</span>
+<span class="tok-dim">// Keep cookies enabled so cart and order ownership persists</span>
 
-<span class="tok-key">const</span> response = <span class="tok-key">await</span> fetch(
-  <span class="tok-str">"https://your-domain.com/api/v1/products/"</span>,
-  {
-    <span class="tok-key">method</span>: <span class="tok-str">"GET"</span>,
-    <span class="tok-key">headers</span>: {
-      <span class="tok-str">"Content-Type"</span>: <span class="tok-str">"application/json"</span>,
-      <span class="tok-str">"Authorization"</span>: <span class="tok-str">"Token &lt;your-token&gt;"</span>
-    }
-  }
-);
-
-<span class="tok-key">const</span> data = <span class="tok-key">await</span> response.json();
-<span class="tok-dim">// → { count: 42, results: [ ... ] }</span>
-
-<span class="tok-dim">// POST a new cart item</span>
-<span class="tok-key">await</span> fetch(<span class="tok-str">"/api/v1/carts/"</span>, {
+<span class="tok-key">await</span> fetch(<span class="tok-str">"/api/v1/carts/cart-items"</span>, {
   <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+  <span class="tok-key">credentials</span>: <span class="tok-str">"include"</span>,
+  <span class="tok-key">headers</span>: {
+    <span class="tok-str">"Content-Type"</span>: <span class="tok-str">"application/json"</span>
+  },
   <span class="tok-key">body</span>: JSON.stringify({
-    <span class="tok-key">product_id</span>: <span class="tok-num">7</span>,
-    <span class="tok-key">quantity</span>:   <span class="tok-num">2</span>
+    <span class="tok-key">product_variant</span>: <span class="tok-str">"6c6d7030-fd91-4d30-8a74-457b5f670001"</span>,
+    <span class="tok-key">quantity</span>: <span class="tok-num">2</span>
   })
-});</pre>
+});
+
+<span class="tok-key">const</span> checkout = <span class="tok-key">await</span> fetch(<span class="tok-str">"/api/v1/orders/checkout"</span>, {
+  <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+  <span class="tok-key">credentials</span>: <span class="tok-str">"include"</span>,
+  <span class="tok-key">headers</span>: {
+    <span class="tok-str">"Content-Type"</span>: <span class="tok-str">"application/json"</span>
+  },
+  <span class="tok-key">body</span>: JSON.stringify({
+    <span class="tok-key">email</span>: <span class="tok-str">"shopper@example.com"</span>,
+    <span class="tok-key">phone_number</span>: <span class="tok-str">"+2348012345678"</span>
+  })
+});
+
+<span class="tok-key">const</span> order = <span class="tok-key">await</span> checkout.json();
+<span class="tok-dim">// Then initialize payment with order.id</span></pre>
             </div>
           </div>
         </div>
@@ -366,8 +370,8 @@
 
         <article class="arch-card" role="listitem">
           <div class="arch-number">01 / LAYERS</div>
-          <h3>Service-Layer Architecture</h3>
-          <p>Business logic lives in a dedicated <code>services/</code> layer — separate from views and models. Keeps API handlers thin, and logic testable in isolation.</p>
+          <h3>App-Local Services</h3>
+          <p>Business logic is pushed into focused service modules where it matters most, especially around inventory, payments, email delivery, and ownership transfer.</p>
         </article>
 
         <article class="arch-card" role="listitem">
@@ -385,13 +389,13 @@
         <article class="arch-card" role="listitem">
           <div class="arch-number">04 / CORE</div>
           <h3>Shared Utilities</h3>
-          <p>Cross-cutting concerns — exceptions, base serializers, permissions — centralised in <code>core/</code> so they're consistent across every app.</p>
+          <p>Cross-cutting concerns — permissions, pagination, filters, validators, and helper utilities — centralised in <code>core/</code> so behavior stays consistent.</p>
         </article>
 
         <article class="arch-card" role="listitem">
           <div class="arch-number">05 / DEPLOY</div>
           <h3>Docker Compose Stack</h3>
-          <p>One <code>docker compose up</code> gives you Django + PostgreSQL running together. The compose file lives in <code>docker/</code>, keeping the project root clean.</p>
+          <p>Development and production both run from root-level Compose files, with Nginx, health checks, Redis, Celery workers, and TLS automation wired in.</p>
         </article>
 
         <article class="arch-card" role="listitem">
@@ -431,7 +435,7 @@
           <span class="r-dot in-progress" aria-label="In progress"></span>
           <div>
             <h4>Auth &amp; Authorisation</h4>
-            <p>JWT/Token auth with role-based access. Guest checkout included.</p>
+            <p>Session auth with CSRF-aware browser support, guest checkout, and shopper-data transfer after login.</p>
           </div>
         </div>
 
@@ -490,9 +494,9 @@
 
   <!-- ===========================================================
        DOCUMENTATION
-       Markdown is rendered inline from js/docs.js.
-       To pull live files from GitHub once the repo is public,
-       uncomment the fetch block inside js/docs.js.
+       Markdown is loaded from docs/docs/v1 through js/docs.js.
+       The sidebar order should match the markdown files and the
+       OpenAPI contract in docs/openapi.
   =========================================================== -->
   <section id="docs" aria-labelledby="docs-heading">
     <div class="container">
@@ -511,15 +515,15 @@
           <nav class="docs-nav" role="navigation">
             <!--
               Each item calls loadDoc(pageId, this).
-              The page ID must match a key in the DOCS object in js/docs.js.
+              The page ID must match a key in the DOC_FILES map in js/docs.js.
               "this" passes the clicked element so the active class can be set.
             -->
-            <div class="docs-nav-item" onclick="loadDoc('overview', this)"      role="button" tabindex="0">Overview</div>
-            <div class="docs-nav-item" onclick="loadDoc('setup', this)"         role="button" tabindex="0">Setup &amp; Installation</div>
-            <div class="docs-nav-item" onclick="loadDoc('api-ref', this)"       role="button" tabindex="0">API Reference</div>
-            <div class="docs-nav-item" onclick="loadDoc('architecture', this)"  role="button" tabindex="0">Architecture</div>
-            <div class="docs-nav-item" onclick="loadDoc('env', this)"           role="button" tabindex="0">Environment Variables</div>
-            <div class="docs-nav-item" onclick="loadDoc('contributing', this)"  role="button" tabindex="0">Contributing</div>
+            <div class="docs-nav-item" onclick="loadDoc('overview', this)" role="button" tabindex="0">Overview</div>
+            <div class="docs-nav-item" onclick="loadDoc('getting-started', this)" role="button" tabindex="0">Getting Started</div>
+            <div class="docs-nav-item" onclick="loadDoc('authentication', this)" role="button" tabindex="0">Authentication</div>
+            <div class="docs-nav-item" onclick="loadDoc('api-guide', this)" role="button" tabindex="0">API Guide</div>
+            <div class="docs-nav-item" onclick="loadDoc('workflow', this)" role="button" tabindex="0">Workflow</div>
+            <div class="docs-nav-item" onclick="loadDoc('faq', this)" role="button" tabindex="0">FAQ</div>
           </nav>
         </aside>
 
@@ -529,7 +533,7 @@
           <!-- Notice: shown while repo is private -->
           <div class="docs-notice" role="note">
             <i data-feather="info"></i>
-            Docs are embedded. Once the repo is public, update <code>js/docs.js</code> to fetch live from GitHub.
+            Docs are loaded from <code>docs/docs/v1/</code>. The machine-readable contract lives at <a href="openapi/sellaris-v1.yaml" target="_blank" rel="noopener noreferrer">openapi/sellaris-v1.yaml</a>.
           </div>
 
           <!-- Markdown renders here -->
@@ -639,16 +643,16 @@
         <div class="step" role="listitem">
           <div class="step-num" aria-label="Step 2">02</div>
           <div class="step-body">
-            <h3>Create your <code>.env</code> file</h3>
-            <p>Add a <code>.env</code> file in the project root with your database credentials and secret key.</p>
+            <h3>Create your <code>.env.local</code> file</h3>
+            <p>Add a root-level <code>.env.local</code> file with database credentials, payment config, and callback paths.</p>
             <div class="cmd-block">
               <code>
                 <span class="prompt" aria-hidden="true">$</span>
-                cp .env.example .env &amp;&amp; nano .env
+                nano .env.local
               </code>
               <button
                 class="copy-btn"
-                data-cmd="cp .env.example .env && nano .env"
+                data-cmd="nano .env.local"
                 aria-label="Copy env setup command"
               >
                 <i data-feather="copy"></i> copy
@@ -665,11 +669,11 @@
             <div class="cmd-block" style="flex-wrap:wrap; gap:8px;">
               <code style="word-break:break-all;">
                 <span class="prompt" aria-hidden="true">$</span>
-                docker compose --env-file .env -f docker/docker-compose.yml up --build
+                docker build -t sellaris:latest -f Dockerfile . && docker compose --env-file .env.local -f docker-compose.yml up -d
               </code>
               <button
                 class="copy-btn"
-                data-cmd="docker compose --env-file .env -f docker/docker-compose.yml up --build"
+                data-cmd="docker build -t sellaris:latest -f Dockerfile . && docker compose --env-file .env.local -f docker-compose.yml up -d"
                 aria-label="Copy docker compose command"
               >
                 <i data-feather="copy"></i> copy
@@ -682,15 +686,15 @@
           <div class="step-num" aria-label="Step 4">04</div>
           <div class="step-body">
             <h3>Hit the API</h3>
-            <p>Django listens at <code>http://localhost:8000</code>. Try the products endpoint to verify it's running.</p>
+            <p>Django listens at <code>http://localhost:8000</code>. Try the health check and the catalog endpoint to verify it is running.</p>
             <div class="cmd-block">
               <code>
                 <span class="prompt" aria-hidden="true">$</span>
-                curl http://localhost:8000/api/v1/products/
+                curl http://localhost:8000/health/ && curl http://localhost:8000/api/v1/products/products
               </code>
               <button
                 class="copy-btn"
-                data-cmd="curl http://localhost:8000/api/v1/products/"
+                data-cmd="curl http://localhost:8000/health/ && curl http://localhost:8000/api/v1/products/products"
                 aria-label="Copy curl command"
               >
                 <i data-feather="copy"></i> copy

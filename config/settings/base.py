@@ -44,7 +44,7 @@ ALLOWED_HOSTS = [
     'localhost'
 ]
 
-FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default='')
+FRONTEND_ORIGIN = env("FRONTEND_ORIGIN", default='')
 
 # Email Config
 EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")
@@ -54,6 +54,8 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+
+VERIFY_EMAIL_PATH = env("VERIFY_EMAIL_PATH", default='/verify-email')
 
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 

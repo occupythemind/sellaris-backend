@@ -1,10 +1,10 @@
 # System Workflow
 
-This document explains the actual business flow implemented in the codebase, including the timing rules that matter for production integration.
+This document explains the business flow implemented in the current codebase, including the timing rules and caveats that matter for production integration.
 
 ## 1. Product and inventory model
 
-The catalog is split into layers:
+The catalog is split into:
 
 - `Category`
 - `Product`
@@ -16,10 +16,10 @@ Important implementation details:
 
 - product slugs are auto-generated if not supplied
 - variant SKU codes are auto-generated if not supplied
-- product images are processed asynchronously after the DB transaction commits
+- product images are processed asynchronously after the database transaction commits
 - variants track both `stock_quantity` and `reserved_stock`
 
-That split matters because orders and carts are built against product variants, not base products.
+Orders, carts, and wishlists are built around product variants, not base products.
 
 ## 2. Session-first commerce flow
 
@@ -34,7 +34,7 @@ Guests can:
 - create orders
 - initialize payments
 
-Later, when the guest registers or logs in, ownership is transferred to the new or existing user account.
+Later, when the guest registers or logs in, ownership is transferred to the user account.
 
 ## 3. Cart behavior
 
@@ -85,10 +85,10 @@ At order creation time, the backend:
 7. creates the `Order`
 8. creates snapshot `OrderItem` rows
 
-This is one of the key production behaviors in Sellaris:
+This is one of the most important production behaviors in Sellaris:
 
 - stale cart prices do not survive checkout unchanged
-- stale quantities can be corrected instead of hard-failing the entire order
+- stale quantities can be corrected instead of hard-failing the whole order
 
 If every item becomes unavailable:
 
@@ -138,7 +138,29 @@ Supported providers:
 
 This gives the frontend an idempotent payment-init experience for retrying checkout.
 
-## 8. Payment confirmation
+## 8. Dynamic redirect and verification URLs
+
+The current codebase now builds some frontend-facing URLs dynamically.
+
+### Payment redirect
+
+When a payment is initialized:
+
+- the backend uses `generate_dynamic_url()`
+- `PAYMENT_REDIRECT_PATH` is appended
+- `FRONTEND_BASE_URL` is preferred if present
+
+### Email verification link
+
+When a verification email is sent:
+
+- the backend uses `generate_dynamic_url()`
+- `VERIFY_EMAIL_PATH` is appended
+- `FRONTEND_BASE_URL` is preferred if present
+
+This makes staging and production deployments less dependent on hard-coded callback hosts.
+
+## 9. Payment confirmation
 
 Provider webhooks queue Celery tasks for actual confirmation work.
 
@@ -162,15 +184,15 @@ Provider webhooks queue Celery tasks for actual confirmation work.
 - confirm stock deduction
 - mark order as paid
 
-## 9. When stock is finally deducted
+## 10. When stock is finally deducted
 
 Reserved stock is only converted into actual deduction after successful payment verification.
 
-`confirm_stock()` does this by:
+`confirm_stock()` is intended to:
 
-- decreasing `stock_quantity`
-- decreasing `reserved_stock`
-- writing an inventory log entry
+- decrease `stock_quantity`
+- decrease `reserved_stock`
+- write an inventory log entry
 
 This design separates:
 
@@ -178,7 +200,7 @@ This design separates:
 - order reservation
 - confirmed payment
 
-## 10. Expiry and cleanup rules
+## 11. Expiry and cleanup rules
 
 The project contains several timed lifecycle rules:
 
@@ -207,7 +229,7 @@ The project contains several timed lifecycle rules:
 
 - verification token lifetime is effectively 24 hours
 
-## 11. Current implementation caveats worth knowing
+## 12. Current implementation caveats worth knowing
 
 These are important if you are documenting or integrating the current code exactly as it exists.
 
@@ -224,39 +246,40 @@ Current code caveat:
 
 - those scheduled filters should be verified or corrected before relying on them in production
 
-### Cart clearing after checkout or payment
+### Dynamic URL settings
 
-The cart is intentionally not cleared during order creation.
+The user and payment views now expect:
 
-Also note:
+- `VERIFY_EMAIL_PATH`
+- `PAYMENT_REDIRECT_PATH`
 
-- the current codebase does not include a later success hook that clears the cart after payment confirmation
+Make sure these are actually exposed through settings and environment configuration in every deployed environment.
 
-Frontend teams should not assume cart cleanup happens automatically.
+### Unverified-login error branch
+
+`LoginAPIView` still references `settings.EMAIL_VERIFY_URL` when returning the unverified-account error message.
+
+Treat that branch as something to verify in staging after the move toward dynamic URL generation.
+
+### OAuth new-user creation path
+
+The OAuth service creates new users through a `full_name` field, while the current user model stores `first_name` and `last_name`.
+
+Treat the provider flows as implemented routes that still deserve staging verification before depending on them for a production frontend.
 
 ### Inventory log read endpoint
 
 The inventory log model contains rich audit fields, but the current response serializer is only a placeholder.
 
-Treat that endpoint as internal/still maturing until the serializer is aligned with the model.
+Treat that endpoint as internal or still stabilizing until the serializer is aligned with the model.
 
-### Currency consistency
+### Payment webhook route mount
 
-The codebase is multi-currency in the product and payment models, but currency propagation is not yet fully normalized end to end.
+The payment webhook include is mounted from `path('payments/webhook', include(...))` without a trailing slash.
 
-Before multi-currency production rollout, verify:
+Before giving webhook URLs to payment providers, confirm the final deployed routes explicitly.
 
-- order currency assignment
-- payment currency assignment
-- frontend display rules for mixed or default currencies
-
-### Webhook URL registration
-
-The payment webhook include is mounted without a trailing slash in the root URL config.
-
-Before giving webhook URLs to payment providers, confirm the resolved deployed routes explicitly.
-
-## 12. Why frontend teams care about this flow
+## 13. Why frontend teams care about this workflow
 
 A frontend or AI-generated UI needs this workflow detail to avoid wrong assumptions:
 
@@ -266,11 +289,3 @@ A frontend or AI-generated UI needs this workflow detail to avoid wrong assumpti
 - ownership is session-based until login
 - order and payment history are private to the current owner
 - staff inventory APIs should never be exposed in shopper UIs
-
-## Related documents
-
-- [Overview](./intro.md)
-- [Getting started](./getting-started.md)
-- [Authentication and access control](./authentication.md)
-- [API guide](./api.md)
-- [FAQ](./faq.md)

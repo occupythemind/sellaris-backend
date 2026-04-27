@@ -17,7 +17,7 @@ If you are building a frontend:
 
 - keep cookies enabled
 - keep the guest session alive until login or registration completes
-- handle CSRF on unsafe requests
+- handle CSRF on unsafe requests that send cookies
 
 ## Can guests shop before creating an account?
 
@@ -99,6 +99,25 @@ Not today.
 
 Frontend teams should decide how to present this state to users.
 
+## Are the payment and verification callback URLs static?
+
+Not anymore.
+
+The current code builds them dynamically from:
+
+- `FRONTEND_BASE_URL`, when present
+- the current request host as fallback
+- `VERIFY_EMAIL_PATH`
+- `PAYMENT_REDIRECT_PATH`
+
+## Is there a health endpoint for deployments?
+
+Yes.
+
+- `GET /health/`
+
+It is currently used by the production container health check.
+
 ## Which endpoints should never be exposed in a shopper UI?
 
 - all product create/update/delete endpoints
@@ -126,13 +145,19 @@ That combination gives the agent:
 
 ## Are the route names in the docs exact?
 
-Yes, the docs follow the current URL registration structure, including repeated segments such as:
+Yes. The docs follow the current URL registration structure, including repeated segments such as:
 
 - `/api/v1/products/products`
 - `/api/v1/carts/cart-items`
 - `/api/v1/wishlists/wishlists`
 
 Those are intentional in this documentation because they reflect the current router setup, not a prettier hypothetical API.
+
+## Are webhook URLs stable enough to hand directly to payment providers?
+
+They should be verified first.
+
+The current root mount for webhook routes is registered without a trailing slash, so confirm the final deployed webhook paths before provider setup.
 
 ## Related documents
 

@@ -1,92 +1,166 @@
 # 🛒 Sellaris — Django E-Commerce Engine
 
-A scalable and secure e-commerce backend API built with Django and Django REST Framework.
-This project provides core commerce functionality including product management, cart handling, orders, and more — designed with production-level architecture in mind.
 
-## 🚀 Features
-- Product catalog management
-- Shopping cart system
-- Wishlist functionality
-- Order processing workflow
-- RESTful API design
-- Dockerized development environment
-- Modular and scalable architecture (domain-based apps)
+Sellaris is a Django and Django REST Framework e-commerce backend engine built for session-aware shopper flows, staff-managed catalog operations, and payment-driven checkout.
 
-## 📡 Available API Endpoints
-```
-/api/v1/products/
-/api/v1/carts/
-/api/v1/wishlists/
-/api/v1/orders/
-/api/v1/payments/
-/api/v1/users/
-```
-⚠️ Note: This project is actively in development. More endpoints and features will be added.
+## What it supports
 
-## 🧱 Tech Stack
-Backend: Django, Django REST Framework
-Database: PostgreSQL
-Containerization: Docker
-Async (planned): Celery + Redis
+- Public product catalog browsing
+- Guest carts, guest wishlists, and guest checkout
+- Account registration, login, email verification, and OAuth entrypoints
+- Order creation with stock reservation
+- Payment initialization for Flutterwave and Paystack
+- Staff-protected catalog and inventory management
+- Docker-based development and production deployments
 
-## ⚙️ Getting Started & Installation
+## API surface
 
-### Prerequisites
-- Docker
-- Docker Compose
+Versioned API prefixes:
 
-### 1. Environment Setup
+- `/api/v1`
+- `/v1`
 
-**For Development:**
-Create a `.env.local` file in the root directory. Development uses the local Docker `db` service.
+Operational endpoint:
+
+- `/health/`
+
+The frontend-facing routes intentionally include repeated resource segments in some groups, for example:
+
+- `/api/v1/products/products`
+- `/api/v1/carts/cart-items`
+- `/api/v1/wishlists/wishlists`
+
+That reflects the current router structure.
+
+## Documentation
+
+Primary docs:
+
+- [Overview](docs/docs/v1/intro.md)
+- [Getting started](docs/docs/v1/getting-started.md)
+- [Authentication and access control](docs/docs/v1/authentication.md)
+- [API guide](docs/docs/v1/api.md)
+- [System workflow](docs/docs/v1/whole-workflow.md)
+- [FAQ](docs/docs/v1/faq.md)
+- [OpenAPI specification](docs/openapi/sellaris-v1.yaml)
+
+If you want to build a frontend quickly, start with the OpenAPI file and then read the authentication and workflow docs.
+
+## Local development
+
+### 1. Create `.env.local`
+
+Development uses the root-level `docker-compose.yml` file and expects `.env.local` in the repository root.
+
+Example minimum shape:
+
 ```env
 DEBUG=True
-SECRET_KEY=your-secret-key-here
-DATABASE_URL=postgresql://ecommerce_user:yourpassword@db:5432/ecommerce_db
+SECRET_KEY=change-me
 
-# Docker database variables
 DB_NAME=ecommerce_db
 DB_USER=ecommerce_user
 DB_PASSWORD=yourpassword
 DB_HOST=db
 DB_PORT=5432
+DATABASE_URL=postgresql://ecommerce_user:yourpassword@db:5432/ecommerce_db
 
-# Other integrations (Cloudinary, Payments, etc.)
+FRONTEND_BASE_URL=http://localhost:3000
+VERIFY_EMAIL_PATH=/verify-email
+PAYMENT_REDIRECT_PATH=/payment-return
+
+FLW_SECRET_KEY=...
+FLW_SECRET_HASH=...
+FLW_BASE_URL=https://api.flutterwave.com/v3
+PST_SECRET_KEY=...
+
+EMAIL_HOST=...
+EMAIL_PORT=587
+EMAIL_HOST_USER=...
+EMAIL_HOST_PASSWORD=...
+DEFAULT_FROM_EMAIL=...
+
+GOOGLE_CLIENT_ID=...
+FACEBOOK_APP_ID=...
+FACEBOOK_APP_SECRET=...
+APPLE_CLIENT_ID=...
 ```
 
-**For Production:**
-Create a `.env` file in the root directory. Production requires an external database (e.g. Supabase, AWS RDS).
-```env
-DEBUG=False
-SECRET_KEY=your-production-secret-key
-DATABASE_URL=your-external-database-url
-ALLOWED_HOSTS=yourdomain.com,localhost,127.0.0.1
+### 2. Build the application image
 
-# Other integrations (Cloudinary, Payments, etc.)
-```
-
-### 2. Build the Docker Image
-First, build the Docker image used by the web and celery services:
-```sh
+```bash
 docker build -t sellaris:latest -f Dockerfile .
 ```
 
-### 3. Run the Project
+### 3. Start the stack
 
-**Development Environment:**
-```sh
-# Start the containers in the background
+```bash
 docker compose --env-file .env.local -f docker-compose.yml up -d
+```
 
-# Run database migrations
+### 4. Run migrations
+
+```bash
 docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py migrate
+```
 
-# Create an admin user (optional)
+### 5. Optional admin user
+
+```bash
 docker compose --env-file .env.local -f docker-compose.yml exec web python3 manage.py createsuperuser
 ```
-The API will be available at `http://localhost:8000/`.
 
-**Production Environment:**
+### 6. Smoke test the API
+
+```bash
+curl http://localhost:8000/api/v1/products/products
+curl http://localhost:8000/health/
+```
+
+## 🔒 Enabling HTTPS and Starting the Production Stack
+
+This project uses dynamic Nginx configuration. You **do not** need to manually edit Nginx config files!
+
+Production uses:
+
+- `docker-compose.prod.yml`
+- Daphne for the Django app
+- Nginx reverse proxy
+- Certbot for TLS renewal
+- Redis with password protection
+- secure cookie and proxy settings
+- `/health/` for container health checks
+
+Common production variables include:
+
+- `ALLOWED_HOSTS`
+- `CORS_ALLOWED_ORIGINS`
+- `CSRF_TRUSTED_ORIGINS`
+- `REDIS_PASSWORD`
+- `DOMAIN_NAME`
+- `DOMAIN_MAIL`
+- `AWS_*`
+- `CLOUDINARY_*`
+
+
+### 1. Update your `.env` file
+Add your domain details to your production `.env` file:
+```env
+DOMAIN_NAME=yourdomain.com
+INCLUDE_WWW=true  # Optional: Set to true if you want to also support www.yourdomain.com
+```
+
+### 2. Get your SSL Certificate
+Before running this, make sure:
+- Your domain points to your server's IP address.
+- Ports `80` and `443` are open on your server firewall.
+
+Run pre-written script to fetch the certificate:
+```sh
+sh init-letsencrypt.sh
+```
+
+### 3. Run the docker compose
 ```sh
 # Recommended for Redis performance in production
 echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf
@@ -102,91 +176,16 @@ docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manag
 ```
 The API will be served via Nginx at `http://localhost/` (or your configured domain).
 
-## 🔒 Enabling HTTPS
+## Current integration notes
 
-This project uses dynamic Nginx configuration. You **do not** need to manually edit Nginx config files!
+These are worth knowing before a frontend team builds on top of the backend:
 
-### 1. Update your `.env` file
-Add your domain details to your production `.env` file:
-```env
-DOMAIN_NAME=yourdomain.com
-INCLUDE_WWW=true  # Optional: Set to true if you want to also support www.yourdomain.com
-```
+- auth is session-based, not token-based
+- the code expects `VERIFY_EMAIL_PATH` and `PAYMENT_REDIRECT_PATH`
+- payment and verification URLs are built dynamically from request context plus frontend config
+- webhook routes should be verified carefully because of the current mount structure
+- inventory audit responses are still stabilizing
 
-### 2. Get your SSL Certificate
-Before running this, make sure:
-- Your domain points to your server's IP address.
-- Ports `80` and `443` are open on your server firewall.
+## License
 
-Run Certbot to fetch the certificate:
-```sh
-docker compose -f docker-compose.prod.yml run --rm certbot certonly \
-  --webroot \
-  --webroot-path=/var/www/certbot \
-  -d yourdomain.com \
-  -d www.yourdomain.com \
-  --email your@email.com \
-  --agree-tos \
-  --no-eff-email
-```
-*(Make sure to replace `yourdomain.com` and `your@email.com` in the command above with your actual details).*
-
-Once the certificate is generated, restart the stack so Nginx can pick it up:
-```sh
-docker compose -f docker-compose.prod.yml down
-docker compose --env-file .env -f docker-compose.prod.yml up -d
-```
-
-
-## 📂 Project Structure
-```
-apps/
-├── users/
-├── products/
-├── cart/
-├── orders/
-├── payments/
-└── notifications/
-
-core/
-services/
-tasks/
-config/
-apps/ → Domain-based modules
-core/ → Shared utilities and configurations
-services/ → Business logic layer
-tasks/ → Background jobs (Celery-ready)
-```
-
-## 🧠 Architecture Highlights
-- Decoupled backend (API-first design)
-- Service-layer architecture for business logic
-- Modular app structure for scalability
-- Designed for future microservices transition
-
-## 🔐 Security Considerations (In Progress)
-- Secure payment verification
-- Input validation and data integrity checks
-- Rate limiting (planned)
-
-## 🛠️ Roadmap
-- Payment integration (Flutterwave / Paystack)
-- Authentication & authorization (Guest user also supported)
-- Product variants & inventory system
-- Order tracking & status updates
-- Email notifications via Celery (planned)
-- API rate limiting
-- Admin dashboard enhancements (planned)
-
-## 📌 Status
-
-`🚧 Work in Progress — actively being developed and improved.`
-
-## 🤝 Contributing
-
-Contributions, suggestions, and feedback are welcome.
-Feel free to fork the project or open an issue.
-
-## 📄 License
-
-This project is open-source and available under the MIT License.
+This project is available under the MIT License.

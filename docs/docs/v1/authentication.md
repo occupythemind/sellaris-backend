@@ -6,7 +6,7 @@ Sellaris currently authenticates users with Django sessions.
 
 What that means in practice:
 
-- `POST /users/login` calls Django `login(request, user)`
+- `POST /api/v1/users/login` calls Django `login(request, user)`
 - the backend sets a session cookie
 - authenticated requests depend on that cookie
 - guest flows still work because carts, wishlists, orders, and payment records can be session-owned
@@ -20,22 +20,48 @@ For the broader endpoint map, see the [API guide](./api.md).
 If you are building a SPA or server-rendered frontend:
 
 - preserve cookies on requests
-- include CSRF protection on unsafe requests
+- include CSRF protection on unsafe requests that send cookies
 - do not discard the guest session before registration or login if you want cart transfer to work
+
+The settings now explicitly configure:
+
+- `CORS_ALLOW_CREDENTIALS = True`
+- readable CSRF cookie behavior in development
+- secure cross-site cookie settings in production
+
+## CSRF note
+
+The project enables Django `CsrfViewMiddleware`, but the current source does not expose a dedicated CSRF bootstrap endpoint.
+
+That means frontend clients should plan around standard Django CSRF behavior:
+
+- send `credentials: 'include'`
+- capture the CSRF cookie when available
+- send it back as `X-CSRFToken` on unsafe requests that use cookies
 
 ## Registration and verification flow
 
 1. `POST /api/v1/users/register`
-2. backend creates the user
-3. backend queues `send_verification_email_task`
-4. backend transfers guest data to the new account
-5. user verifies email through `GET /api/v1/users/verify-email?uid=...&token=...`
+2. the backend creates the user
+3. the backend queues `send_verification_email_task`
+4. guest-owned data is transferred to the new account
+5. the user verifies email through `GET /api/v1/users/verify-email?uid=...&token=...`
 
 Important business rule:
 
 - the verification token uses Django `PasswordResetTokenGenerator`
 - `PASSWORD_RESET_TIMEOUT` is configured to 24 hours
-- so the verification link should be treated as expiring after 24 hours
+- verification links should therefore be treated as expiring after 24 hours
+
+## Dynamic verification URL behavior
+
+Recent code now builds verification links dynamically:
+
+- `FRONTEND_BASE_URL` is used if present
+- otherwise the request scheme and validated host are used
+- `VERIFY_EMAIL_PATH` is appended to produce the final frontend verification route
+
+This is useful for staging and production environments that sit behind different domains or proxies.
 
 ## Login flow
 
@@ -47,6 +73,12 @@ Login behavior:
 - rejects unverified accounts with `403`
 - reactivates a soft-deleted account if it logs in again before final deletion
 - transfers guest cart, wishlist, and pending orders to the authenticated account
+
+The response body is simple:
+
+- `{"message": "Login successful"}`
+
+The actual auth state is established by the session cookie.
 
 ## OAuth flows
 
@@ -143,7 +175,7 @@ That applies to:
 - orders
 - payment record list
 
-## Guest data transfer on login/registration
+## Guest data transfer on login or registration
 
 When a guest becomes an authenticated user, the backend:
 
@@ -151,7 +183,7 @@ When a guest becomes an authenticated user, the backend:
 - merges the guest cart into the user cart, combining quantities for matching variants
 - transfers pending guest orders to the user
 
-This is one of the project’s most important UX features and should be preserved in any future auth redesign.
+This is one of the project’s most valuable UX features and should be preserved in any future auth redesign.
 
 ## Related documents
 
