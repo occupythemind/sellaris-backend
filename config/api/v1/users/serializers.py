@@ -27,7 +27,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "username", "date_joined"]
+        fields = [
+            "first_name", 
+            "last_name", 
+            "username", 
+            "date_joined",
+            "is_staff",
+            "is_superuser",
+        ]
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
