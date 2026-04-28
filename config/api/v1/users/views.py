@@ -9,7 +9,7 @@ from django.utils.encoding import force_str
 from django.utils import timezone
 from django.conf import settings
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -114,10 +114,13 @@ class LoginAPIView(APIView):
             status=status.HTTP_200_OK
         )
     
-
-@ensure_csrf_cookie
+# TODO
+# TEMP: Unsecure getting of CSRF token. Its better to rely on Django-ntive shared domain
+# CSRF_COOKIE_DOMAIN = ".example.com" # settings
 def get_csrf(request):
-    return JsonResponse({"detail": "CSRF cookie set"})
+    return JsonResponse({
+        "csrfToken": get_token(request)
+    })
 
 
 class VerifyEmailAPIView(APIView):
