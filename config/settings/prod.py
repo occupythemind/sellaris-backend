@@ -13,24 +13,37 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS')
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Cloudflare R2 Configuration
+# Or any AWS compatible bucket config
 AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='auto')
 
-# Configure for media files
-DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
+# Public Read URL Configuration
+# Use your public dev URL (pub-xxx.r2.dev) or custom domain
+AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN')
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
-# Configure for static files
-STATICFILES_STORAGE = 'storages.backends.s3.S3Storage' 
-
-# Other S3 settings
-AWS_S3_FILE_OVERWRITE = False  # Keep files, don't delete/overwrite
-
-AWS_DEFAULT_ACL = None         # Use bucket policies, don't make public by default
-
-# Make sure we handle media URL correctly
-MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/media/'
+STORAGES = {
+    # configure for media files
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location":"media",
+            "querystring_auth": False,  # Required for public access
+            "file_overwrite": False,
+        },
+    },
+    # configure for static files
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "static",  # optional but recommended
+            "querystring_auth": False,
+        },
+    },
+}
 
 # Cludinary configuration, used for image processing
 # ie. resizing, compressing, & converting an image to 'webp' format.
