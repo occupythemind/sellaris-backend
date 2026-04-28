@@ -8,6 +8,8 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.utils import timezone
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -112,6 +114,11 @@ class LoginAPIView(APIView):
             status=status.HTTP_200_OK
         )
     
+
+@ensure_csrf_cookie
+def get_csrf(request):
+    return JsonResponse({"detail": "CSRF cookie set"})
+
 
 class VerifyEmailAPIView(APIView):
     throttle_classes = [VerifyEmailThrottle]
