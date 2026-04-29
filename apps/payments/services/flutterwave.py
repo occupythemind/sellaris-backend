@@ -29,7 +29,7 @@ class FlutterwaveService:
             }
         }
 
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
         data = response.json()
 
         # For detailed error message for easy debugging on production
