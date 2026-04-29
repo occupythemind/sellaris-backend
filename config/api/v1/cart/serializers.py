@@ -37,11 +37,13 @@ class CartReadSerializer(ModelSerializer):
 class CartItemWriteSerializer(ModelSerializer):
     class Meta:
         model = CartItem
-        fields = ["id", "cart", "product_variant", "quantity"]
+        fields = ["id", "product_variant", "quantity"]
         read_only_fields = ["id"]
     
-    def create(self, validated_data):
-        cart = validated_data["cart"]
+    def create(self, validated_data, **kwargs):
+        cart = kwargs.get("cart") or validated_data.get("cart")
+        if not cart:
+            raise ValidationError("Cart is required")
         variant = validated_data["product_variant"]
         qty = validated_data.get("quantity", 1)
 
