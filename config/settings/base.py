@@ -31,6 +31,8 @@ if (BASE_DIR / '.env').exists():
 # The Application Secret Key
 SECRET_KEY = env('SECRET_KEY')
 
+PAYMENT_REDIRECT_PATH = env('PAYMENT_REDIRECT_PATH')
+
 # Flutterwave Payment Integration Credentials
 FLW_SECRET_KEY = env("FLW_SECRET_KEY")
 FLW_SECRET_HASH = env("FLW_SECRET_HASH")

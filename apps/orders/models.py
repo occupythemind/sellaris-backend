@@ -46,6 +46,7 @@ class Order(models.Model):
     email = models.EmailField()
     phone_number = models.CharField(
         max_length=15, 
+        null=True,
         blank=True
     )
 
