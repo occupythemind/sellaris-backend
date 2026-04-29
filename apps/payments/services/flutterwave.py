@@ -32,8 +32,14 @@ class FlutterwaveService:
         response = requests.post(url, json=payload, headers=headers)
         data = response.json()
 
+        # For detailed error message for easy debugging on production
+        try:
+            data = response.json()
+        except Exception:
+            data = response.text
+
         if response.status_code != 200 or data.get("status") != "success":
-            raise Exception("Payment initialization failed")
+            raise Exception(f"Payment initialization failed: {data}")
 
         return data["data"]["link"]
     
