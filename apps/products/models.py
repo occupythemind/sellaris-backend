@@ -48,7 +48,7 @@ class Product(models.Model):
     currency = models.CharField(
         max_length=3,
         choices=settings.CURRENCY_CHOICES,
-        default='USD',
+        default=settings.DEFAULT_CURRENCY_CHOICE,
     )
 
     def __str__(self):
@@ -88,7 +88,7 @@ class ProductVariant(models.Model):
     currency = models.CharField(
         max_length=3,
         choices=settings.CURRENCY_CHOICES,
-        default='USD',
+        default=settings.DEFAULT_CURRENCY_CHOICE,
     )
 
     # available_stock = stock_quantity - reserved_stock

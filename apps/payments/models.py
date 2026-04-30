@@ -38,7 +38,7 @@ class Payment(models.Model):
     currency = models.CharField(
         max_length=3,
         choices=settings.CURRENCY_CHOICES,
-        default='USD',
+        default=settings.DEFAULT_CURRENCY_CHOICE,
     )
 
     status = models.CharField(

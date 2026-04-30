@@ -304,3 +304,6 @@ CURRENCY_CHOICES = [
     ('XAF', 'XAF - Central African CFA Franc'),
     ('XOF', 'XOF - West African CFA Franc'),
 ]
+
+# Change this to your preferred choice of currency
+DEFAULT_CURRENCY_CHOICE = "NGN"

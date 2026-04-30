@@ -40,7 +40,7 @@ class Order(models.Model):
     )
 
     total_amount = get_price_decimal_field() # temporary snapshot price
-    currency = models.CharField(max_length=10, default="NGN")
+    currency = models.CharField(max_length=10, default=settings.DEFAULT_CURRENCY_CHOICE)
 
     # Snapshot of customer at time of order
     email = models.EmailField()
