@@ -8,7 +8,7 @@ import requests
 import json
 import logging
 
-from apps.payments.models import Payment, PaymentStatus
+from apps.payments.models import Payment, PaymentStatus, PaymentWebhookLog
 from apps.inventory.services import confirm_stock
 
 
@@ -17,8 +17,10 @@ logger = logging.getLogger("payments")
 
 @shared_task(bind=True, max_retries=3)
 @transaction.atomic
-def process_flutterwave_webhook(self, payload, log):
+def process_flutterwave_webhook(self, payload, log_id):
     try:
+        log = PaymentWebhookLog.objects.get(id=log_id)
+
         # Parse event
         data = json.loads(payload)
         event = data.get("event")
@@ -106,8 +108,10 @@ def process_flutterwave_webhook(self, payload, log):
 
 @shared_task(bind=True, max_retries=3)
 @transaction.atomic
-def process_paystack_webhook(self, payload, log):
+def process_paystack_webhook(self, payload, log_id):
     try:
+        log = PaymentWebhookLog.objects.get(id=log_id)
+        
         event = payload.get("event")
 
         if event != "charge.success":
