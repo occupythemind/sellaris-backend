@@ -210,6 +210,8 @@ DATA_UPLOAD_MAX_FILES = 20
 # Celery config
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
 
 
 # Celery beat schedule

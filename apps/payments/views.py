@@ -5,9 +5,12 @@ from django.conf import settings
 import hashlib
 import hmac
 import json
+import logging
 from tasks.process_webhooks import process_flutterwave_webhook, process_paystack_webhook
 from .models import PaymentWebhookLog
 from .throttles import FlutterwaveWebhookThrottle, PaystackWebhookThrottle
+
+logger = logging.getLogger("payments")
 
 
 class FlutterwaveWebhookAPIView(APIView):
@@ -35,7 +38,11 @@ class FlutterwaveWebhookAPIView(APIView):
         )
         
         # SEND TO CELERY
-        process_flutterwave_webhook.delay(payload, log.id)
+        try:
+            process_flutterwave_webhook.delay(payload, log.id)
+            logger.info("Celery task dispatched", extra={"log_id": log.id})
+        except Exception as e:
+            logger.error("Failed to dispatch Celery task", exc_info=e)
 
         log.status = "queued"
         log.save(update_fields=["status"])
@@ -71,7 +78,11 @@ class PaystackWebhookAPIView(APIView):
         )
 
         # QUEUE TASK
-        process_paystack_webhook.delay(data, log.id)
+        try:
+            process_paystack_webhook.delay(payload, log.id)
+            logger.info("Celery task dispatched", extra={"log_id": log.id})
+        except Exception as e:
+            logger.error("Failed to dispatch Celery task", exc_info=e)
 
         log.status = "queued"
         log.save(update_fields=["status"])

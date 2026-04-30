@@ -8,7 +8,12 @@ import requests
 import json
 import logging
 
-from apps.payments.models import Payment, PaymentStatus, PaymentWebhookLog
+from apps.payments.models import (
+    Payment, 
+    PaymentStatus, 
+    PaymentWebhookLog
+)
+from apps.orders.models import OrderStatus
 from apps.inventory.services import confirm_stock
 
 
@@ -83,13 +88,6 @@ def process_flutterwave_webhook(self, payload, log_id):
         payment.confirmed_at = timezone.now()
         payment.save()
         
-        # Update ProductVariant stock quantity
-        for item in order.items.select_related("product_variant"):
-            confirm_stock(
-                item.product_variant, 
-                item.quantity
-            )
-
         # Update the Log after processing
         log.status = "success"
         log.processed = True
@@ -98,8 +96,12 @@ def process_flutterwave_webhook(self, payload, log_id):
         order = payment.order
         if order.status.upper() != "PENDING":
             return
-        order.status = "PAID".lower()
-        order.save(update_fields=["status"])  
+        order.status = OrderStatus.PAID
+        order.save(update_fields=["status"])
+        
+        # Update ProductVariant stock quantity
+        for item in order.items.select_related("product_variant"):
+            confirm_stock(item.product_variant, item.quantity)
 
     except Exception as e:
         logger.error("Payment verification failed", exc_info=True)
@@ -111,7 +113,11 @@ def process_flutterwave_webhook(self, payload, log_id):
 def process_paystack_webhook(self, payload, log_id):
     try:
         log = PaymentWebhookLog.objects.get(id=log_id)
-        
+
+        # Parse payload if it's a string
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+
         event = payload.get("event")
 
         if event != "charge.success":
@@ -181,7 +187,7 @@ def process_paystack_webhook(self, payload, log_id):
         order = payment.order
         if order.status.upper() != "PENDING":
             return
-        order.status = "PAID".lower()
+        order.status = OrderStatus.PAID
         order.save(update_fields=["status"])
 
         # Update ProductVariant stock quantity
