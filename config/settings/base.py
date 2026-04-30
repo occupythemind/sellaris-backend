@@ -210,8 +210,8 @@ DATA_UPLOAD_MAX_FILES = 20
 # Celery config
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
+CELERY_TASK_TRACK_STARTED = False  # Disable tracking task start
+CELERY_IGNORE_RESULT = True  # Don't track task results (webhook tasks don't need them)
 
 
 # Celery beat schedule
