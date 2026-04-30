@@ -14,7 +14,7 @@ urlpatterns = [
     # So both /v1/ and /api/v1/ can work seemlessly
     path('v1/', include('config.api.v1.urls')),
     path('api/v1/', include('config.api.v1.urls')),
-    path('payments/webhook', include('apps.payments.urls')),
+    path('payments/webhook/', include('apps.payments.urls')),
     path('health/', lambda r: HttpResponse("OK")),
 ]
 
