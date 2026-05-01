@@ -213,6 +213,17 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TASK_TRACK_STARTED = False  # Disable tracking task start
 CELERY_IGNORE_RESULT = True  # Don't track task results (webhook tasks don't need them)
 
+# Set the default queue to 'default' to match the docker-compose worker
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+
+# Explicitly import all standalone tasks so Celery discovers them on worker startup
+CELERY_IMPORTS = [
+    'tasks.cleanup_data',
+    'tasks.process_image',
+    'tasks.process_webhooks',
+    'tasks.send_email',
+]
+
 
 # Celery beat schedule
 
