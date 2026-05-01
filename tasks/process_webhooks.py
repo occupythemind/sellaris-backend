@@ -33,15 +33,16 @@ def process_flutterwave_webhook(self, payload, log_id):
         else:
             data = payload
             
-        event = data.get("event")
+        event = data.get("event") or data.get("event.type") or data.get("type")
 
         if event != "charge.completed":
+            logger.warning(f"Ignored Flutterwave webhook. Event: '{event}'. Payload: {data}")
             return
         
         # Fetch payment data
-        payment_data = data["data"]
-        tx_ref = payment_data["tx_ref"]
-        flw_tx_id = payment_data["id"]
+        payment_data = data.get("data", {})
+        tx_ref = payment_data.get("tx_ref")
+        flw_tx_id = payment_data.get("id")
 
         logger.info(f"Processing payment webhook: {tx_ref}")
 
