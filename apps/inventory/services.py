@@ -92,7 +92,7 @@ def confirm_stock(variant, quantity):
         action="CONFIRM",
         quantity=quantity,
         previous_stock=prev,
-        new_stock=variant.stock,
+        new_stock=variant.stock_quantity,
         note="Payment Successful"
     )
 
@@ -113,6 +113,6 @@ def release_stock(variant, quantity):
         action="RELEASE",
         quantity=quantity,
         previous_stock=prev,
-        new_stock=variant.stock,
+        new_stock=variant.stock_quantity,
         note="Order Expired"
     )
