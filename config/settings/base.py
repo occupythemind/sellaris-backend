@@ -31,15 +31,15 @@ if (BASE_DIR / '.env').exists():
 # The Application Secret Key
 SECRET_KEY = env('SECRET_KEY')
 
-PAYMENT_REDIRECT_PATH = env('PAYMENT_REDIRECT_PATH')
+PAYMENT_REDIRECT_PATH = env('PAYMENT_REDIRECT_PATH', default='/payment-callback')
 
 # Flutterwave Payment Integration Credentials
-FLW_SECRET_KEY = env("FLW_SECRET_KEY")
-FLW_SECRET_HASH = env("FLW_SECRET_HASH")
-FLW_BASE_URL = env("FLW_BASE_URL")
+FLW_SECRET_KEY = env("FLW_SECRET_KEY", default='')
+FLW_SECRET_HASH = env("FLW_SECRET_HASH", default='')
+FLW_BASE_URL = env("FLW_BASE_URL", default='')
 
 # PAYSTACK Payment Integration Credentials
-PST_SECRET_KEY = env("PST_SECRET_KEY")
+PST_SECRET_KEY = env("PST_SECRET_KEY", default='')
 
 ALLOWED_HOSTS = [
     '127.0.0.1', 
@@ -49,28 +49,33 @@ ALLOWED_HOSTS = [
 FRONTEND_ORIGIN = env("FRONTEND_ORIGIN", default='')
 
 # Email Config
+SUPPORTED_EMAIL_PROVIDERS = [
+    "smtp",
+    "sendpulse",
+]
+
 EMAIL_PROVIDER = env("EMAIL_PROVIDER", default="smtp")
 
-EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_HOST = env("EMAIL_HOST", default='')
 EMAIL_PORT = env.int("EMAIL_PORT", default=587)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default='')
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default='')
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 
 VERIFY_EMAIL_PATH = env("VERIFY_EMAIL_PATH", default='/verify-email')
 
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default='')
 
-EMAIL_FROM_NAME = "MyShop"
+EMAIL_FROM_NAME = env("EMAIL_FROM_NAME", default="Shop")
 
-SENDPULSE_CLIENT_ID = env("SENDPULSE_CLIENT_ID")
-SENDPULSE_CLIENT_SECRET = env("SENDPULSE_CLIENT_SECRET")
+SENDPULSE_CLIENT_ID = env("SENDPULSE_CLIENT_ID", default='')
+SENDPULSE_CLIENT_SECRET = env("SENDPULSE_CLIENT_SECRET", default='')
 
 # OAuth Provders Credentials
-GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
-FACEBOOK_APP_ID = env("FACEBOOK_APP_ID")
-FACEBOOK_APP_SECRET = env("FACEBOOK_APP_SECRET")
-APPLE_CLIENT_ID = env("APPLE_CLIENT_ID")
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default='')
+FACEBOOK_APP_ID = env("FACEBOOK_APP_ID", default='')
+FACEBOOK_APP_SECRET = env("FACEBOOK_APP_SECRET", default='')
+APPLE_CLIENT_ID = env("APPLE_CLIENT_ID", default='')
 
 # Token config
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 hours
@@ -79,6 +84,11 @@ PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 hours
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CSRF_COOKIE_HTTPONLY = False  # Allows JS to read the cookie
 CORS_ALLOW_CREDENTIALS = True
+
+SHARED_DOMAIN = env("SHARED_DOMAIN", default=None)
+if SHARED_DOMAIN:
+    SESSION_COOKIE_DOMAIN = SHARED_DOMAIN
+    CSRF_COOKIE_DOMAIN = SHARED_DOMAIN
 
 
 # Application definition
@@ -319,4 +329,4 @@ CURRENCY_CHOICES = [
 ]
 
 # Change this to your preferred choice of currency
-DEFAULT_CURRENCY_CHOICE = "NGN"
+DEFAULT_CURRENCY_CHOICE = env("DEFAULT_CURRENCY_CHOICE", default="NGN")
