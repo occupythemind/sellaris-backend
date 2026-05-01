@@ -35,14 +35,18 @@ def process_flutterwave_webhook(self, payload, log_id):
             
         event = data.get("event") or data.get("event.type") or data.get("type")
 
-        if event != "charge.completed":
+        if event not in ["charge.completed", "CARD_TRANSACTION"]:
             logger.warning(f"Ignored Flutterwave webhook. Event: '{event}'. Payload: {data}")
             return
         
         # Fetch payment data
-        payment_data = data.get("data", {})
-        tx_ref = payment_data.get("tx_ref")
+        payment_data = data.get("data") if data.get("data") else data
+        tx_ref = payment_data.get("tx_ref") or payment_data.get("txRef")
         flw_tx_id = payment_data.get("id")
+
+        if not tx_ref:
+            logger.error(f"Flutterwave webhook missing tx_ref. Payload: {data}")
+            return
 
         logger.info(f"Processing payment webhook: {tx_ref}")
 
@@ -71,14 +75,15 @@ def process_flutterwave_webhook(self, payload, log_id):
         response = requests.get(verify_url, headers=headers)
         verify_data = response.json()
 
-        verified = verify_data["data"]
+        verified = verify_data.get("data", {})
+        verified_tx_ref = verified.get("tx_ref") or verified.get("txRef")
 
         # Validate Everything to ensure it matches with our existing record
         if (
-            verify_data["status"] != "success" or
-            verified["amount"] != payment.amount or
-            verified["currency"] != payment.currency or
-            verified["tx_ref"] != payment.reference_id
+            verify_data.get("status") != "success" or
+            verified.get("amount") != payment.amount or
+            verified.get("currency") != payment.currency or
+            verified_tx_ref != payment.reference_id
         ):
             payment.status = PaymentStatus.FAILED
             payment.transaction_id = flw_tx_id
