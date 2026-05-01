@@ -30,16 +30,18 @@ class FlutterwaveWebhookAPIView(APIView):
         if not hmac.compare_digest(signature, expected_hash):
             return Response(status=403)
         
+        data = json.loads(payload)
+        
         # We LOG this before any processing
         log = PaymentWebhookLog.objects.create(
             provider="flutterwave",
-            payload=json.loads(payload),
+            payload=data,
             headers=dict(request.headers)
         )
         
         # SEND TO CELERY
         try:
-            process_flutterwave_webhook.delay(payload, log.id)
+            process_flutterwave_webhook.delay(data, log.id)
             logger.info("Celery task dispatched", extra={"log_id": log.id})
         except Exception as e:
             logger.error("Failed to dispatch Celery task", exc_info=e)
@@ -79,7 +81,7 @@ class PaystackWebhookAPIView(APIView):
 
         # QUEUE TASK
         try:
-            process_paystack_webhook.delay(payload, log.id)
+            process_paystack_webhook.delay(data, log.id)
             logger.info("Celery task dispatched", extra={"log_id": log.id})
         except Exception as e:
             logger.error("Failed to dispatch Celery task", exc_info=e)

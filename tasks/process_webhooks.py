@@ -23,11 +23,16 @@ logger = logging.getLogger("payments")
 @shared_task(bind=True, max_retries=3)
 @transaction.atomic
 def process_flutterwave_webhook(self, payload, log_id):
+    tx_ref = None
     try:
         log = PaymentWebhookLog.objects.get(id=log_id)
 
         # Parse event
-        data = json.loads(payload)
+        if isinstance(payload, (str, bytes)):
+            data = json.loads(payload)
+        else:
+            data = payload
+            
         event = data.get("event")
 
         if event != "charge.completed":
@@ -111,11 +116,12 @@ def process_flutterwave_webhook(self, payload, log_id):
 @shared_task(bind=True, max_retries=3)
 @transaction.atomic
 def process_paystack_webhook(self, payload, log_id):
+    reference = None
     try:
         log = PaymentWebhookLog.objects.get(id=log_id)
 
-        # Parse payload if it's a string
-        if isinstance(payload, str):
+        # Parse payload if it's a string or bytes
+        if isinstance(payload, (str, bytes)):
             payload = json.loads(payload)
 
         event = payload.get("event")
