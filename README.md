@@ -65,7 +65,7 @@ DB_HOST=db
 DB_PORT=5432
 DATABASE_URL=postgresql://ecommerce_user:yourpassword@db:5432/ecommerce_db
 
-FRONTEND_BASE_URL=http://localhost:3000
+FRONTEND_ORIGIN=http://localhost:3000
 VERIFY_EMAIL_PATH=/verify-email
 PAYMENT_REDIRECT_PATH=/payment-return
 
@@ -74,17 +74,12 @@ FLW_SECRET_HASH=...
 FLW_BASE_URL=https://api.flutterwave.com/v3
 PST_SECRET_KEY=...
 
-EMAIL_HOST=...
-EMAIL_PORT=587
-EMAIL_HOST_USER=...
-EMAIL_HOST_PASSWORD=...
-DEFAULT_FROM_EMAIL=...
-
 GOOGLE_CLIENT_ID=...
 FACEBOOK_APP_ID=...
 FACEBOOK_APP_SECRET=...
 APPLE_CLIENT_ID=...
 ```
+You can check for more environment variables to inject from [settings/base.py](config/settings/base.py)
 
 ### 2. Build the application image
 
@@ -117,7 +112,7 @@ curl http://localhost:8000/api/v1/products/products
 curl http://localhost:8000/health/
 ```
 
-## 🔒 Enabling HTTPS and Starting the Production Stack
+## 🔒 Startin the Production Stack & Enabling HTTPS
 
 This project uses dynamic Nginx configuration. You **do not** need to manually edit Nginx config files!
 
@@ -142,6 +137,7 @@ Common production variables include:
 - `AWS_*`
 - `CLOUDINARY_*`
 
+You can check for more from [config/settings/base.py](config/settings/base.py) and  [config/settings/prod.py](config/settings/prod.py)
 
 ### 1. Update your `.env` file
 Add your domain details to your production `.env` file:
@@ -174,15 +170,15 @@ docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manag
 # Collect static files
 docker compose --env-file .env -f docker-compose.prod.yml exec web python3 manage.py collectstatic --no-input
 ```
-The API will be served via Nginx at `http://localhost/` (or your configured domain).
+The API should now be served via Nginx at `https://yourdomain/` or `https://www.yourdomain.com/` (if you included `www` subdomain).
 
 ## Current integration notes
 
 These are worth knowing before a frontend team builds on top of the backend:
 
 - auth is session-based, not token-based
-- the code expects `VERIFY_EMAIL_PATH` and `PAYMENT_REDIRECT_PATH`
-- payment and verification URLs are built dynamically from request context plus frontend config
+- the code expects `VERIFY_EMAIL_PATH` and `PAYMENT_REDIRECT_PATH` else it would default to `/verify-email` and `/payment-callback` respectively
+- payment and verification URLs are built dynamically from frontend config, tthen request context if only `FRONTEND_ORIGIN` wasn't set
 - webhook routes should be verified carefully because of the current mount structure
 - inventory audit responses are still stabilizing
 
